@@ -125,15 +125,17 @@ void main() {
 
     if (s.type == 1 || s.type == 2) {
         if (photoLook != 0) {
-            // Photo: pale yellow-cream bulge (not orange), tan mid, blue outer.
-            vec3 cream = vec3(1.20, 1.05, 0.78);
-            vec3 tanMid = vec3(1.00, 0.82, 0.65);
-            vec3 blue = vec3(0.45, 0.75, 1.45);
-            vec3 grade = tRad < 0.42
-                ? mix(cream, tanMid, tRad / 0.42)
-                : mix(tanMid, blue, clamp((tRad - 0.42) / 0.70, 0.0, 1.0));
-            color.rgb = mix(color.rgb, color.rgb * grade, tRad < 0.42 ? 0.85 : 0.70);
-            color.rgb *= mix(0.70, 1.05, smoothstep(0.12, 0.90, tRad));
+            // Soft cream bulge → pale tan mid → cool blue (avoid muddy brown mid-disk).
+            vec3 cream = vec3(1.04, 0.98, 0.90);
+            vec3 tanMid = vec3(0.98, 0.92, 0.84);
+            vec3 blue = vec3(0.60, 0.82, 1.20);
+            vec3 grade = tRad < 0.40
+                ? mix(cream, tanMid, tRad / 0.40)
+                : mix(tanMid, blue, clamp((tRad - 0.40) / 0.70, 0.0, 1.0));
+            float gMix = tRad < 0.40 ? 0.88 : 0.55;
+            color.rgb = mix(color.rgb, color.rgb * grade, gMix * 0.30);
+            color.rgb = mix(color.rgb, grade * length(color.rgb) / max(length(grade), 0.001), gMix * 0.70);
+            color.rgb *= mix(1.00, 1.40, smoothstep(0.15, 0.95, tRad));
         } else {
             float w = smoothstep(0.12, 0.95, tRad);
             color.r *= mix(1.0, 0.70, w);
@@ -159,15 +161,18 @@ void main() {
         pointSize = s.mag * (photoLook != 0 ? 3.0 : 4.0);
         vertexColor = color * s.mag;
         if (photoLook != 0 && tRad < 0.30)
-            vertexColor.rgb *= vec3(1.15, 1.05, 0.82) * 0.9;
+            vertexColor.rgb *= vec3(1.04, 0.99, 0.92) * 0.80;
         if ((displayFeatures & 1) == 0) pointSize = 0.0;
     } else if (type == 1) {
-        float sizeMul = photoLook != 0 ? mix(0.6, 1.2, smoothstep(0.2, 0.9, tRad)) : 1.0;
+        // Soft extended cream discs; keep mid-disk from going muddy/opaque.
+        float sizeMul = photoLook != 0 ? mix(0.85, 1.05, smoothstep(0.15, 0.85, tRad)) : 1.0;
         pointSize = s.mag * 5.0 * dustPx * sizeMul;
         vertexColor = color * s.mag;
+        if (photoLook != 0)
+            vertexColor.rgb *= mix(0.90, 1.0, smoothstep(0.15, 0.55, tRad));
         if ((displayFeatures & 2) == 0) pointSize = 0.0;
     } else if (type == 2) {
-        float sizeMul = photoLook != 0 ? 0.9 : 1.0;
+        float sizeMul = photoLook != 0 ? 0.85 : 1.0;
         pointSize = s.mag * 2.0 * dustPx * sizeMul;
         vertexColor = color * s.mag;
         if ((displayFeatures & 4) == 0) pointSize = 0.0;
@@ -188,25 +193,29 @@ void main() {
             ignite = 0.0;
 
         if (type == 3) {
-            pointSize = h2SizeMax * ignite;
+            pointSize = h2SizeMax * ignite * (photoLook != 0 ? 0.95 : 1.0);
             vec4 tint = photoLook != 0
-                ? vec4(1.85, 0.40, 0.95, 1.0)
+                ? vec4(1.35, 0.52, 0.88, 1.0)
                 : vec4(2.0, 0.5, 0.5, 1.0);
             vertexColor = color * s.mag * tint * ignite;
         } else {
-            pointSize = h2SizeMax * ignite / (photoLook != 0 ? 7.0 : 10.0);
+            pointSize = h2SizeMax * ignite / (photoLook != 0 ? 8.0 : 10.0);
             vertexColor = vec4(1.0) * ignite;
         }
     } else if (type == 5) {
-        pointSize = s.mag * (photoLook != 0 ? 11.0 : 2.2 * max(dustPx * 0.22, 5.0));
+        // Thin filaments - large soft discs stack into blotchy black patches.
+        pointSize = s.mag * (photoLook != 0 ? 5.0 : 2.2 * max(dustPx * 0.22, 5.0));
         vertexColor = vec4(color.rgb, clamp(s.mag, 0.0, 1.0));
         if ((displayFeatures & 16) == 0) pointSize = 0.0;
     }
 
-    // Soft roll-off near the bulge so additive stacking stays cream, not white.
+    // Mild peak roll-off - keeps cream ratios, limits white blowout.
     if (photoLook != 0 && type != 5) {
-        float lum = dot(max(vertexColor.rgb, 0.0), vec3(0.3, 0.6, 0.1));
-        vertexColor.rgb *= 1.0 / (1.0 + lum * mix(0.9, 0.15, smoothstep(0.12, 0.75, tRad)));
+        float peak = max(vertexColor.r, max(vertexColor.g, vertexColor.b));
+        float k = mix(2.0, 0.22, smoothstep(0.05, 0.65, tRad));
+        // Extra damp on the bright inner arm ring (not just the nucleus).
+        k += 0.55 * smoothstep(0.16, 0.26, tRad) * (1.0 - smoothstep(0.26, 0.48, tRad));
+        vertexColor.rgb *= 1.0 / (1.0 + peak * k);
     }
 
     pointSize = max(pointSize * sizeFactor, 0.0);

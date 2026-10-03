@@ -30,7 +30,10 @@ public static class Constants
     public const int GlPointSprite = 0x8861;
     public const int GlBlend = 0x0BE2;
     public const int GlFuncAdd = 0x8006;
+    public const int GlZero = 0;
+    public const int GlSrcColor = 0x0300;
     public const int GlSrcAlpha = 0x0302;
     public const int GlOne = 1;
     public const int GlOneMinusSrcAlpha = 0x0303;
+    public const int GlDstColor = 0x0306;
 }

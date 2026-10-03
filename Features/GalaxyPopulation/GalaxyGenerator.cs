@@ -68,6 +68,21 @@ public sealed class GalaxyGenerator
                 Type = (int)ParticleType.Dust,
             };
             dust.SetColorFromTemperature();
+            // Photo look: kill muddy orange blackbody in the inner disk.
+            if (p.PhotoLook && rad < p.RadGalaxy * 0.75f)
+            {
+                var t = Math.Clamp(rad / (p.RadGalaxy * 0.75f), 0f, 1f);
+                static float Lerp(float a, float b, float u) => a + (b - a) * u;
+                // Inner: cream, mid: soft tan, outer: cool.
+                var u = t < 0.45f ? 0f : (t - 0.45f) / 0.55f;
+                var tr = t < 0.45f ? 1.0f : Lerp(1.0f, 0.70f, u);
+                var tg = t < 0.45f ? 0.95f : Lerp(0.95f, 0.82f, u);
+                var tb = t < 0.45f ? 0.88f : Lerp(0.88f, 1.15f, u);
+                var w = 0.55f * (1f - 0.35f * t);
+                dust.ColorR = Math.Clamp(Lerp(dust.ColorR, tr, w), 0f, 1.6f);
+                dust.ColorG = Math.Clamp(Lerp(dust.ColorG, tg, w), 0f, 1.6f);
+                dust.ColorB = Math.Clamp(Lerp(dust.ColorB, tb, w), 0f, 1.6f);
+            }
             stars.Add(dust);
         }
 
@@ -122,31 +137,36 @@ public sealed class GalaxyGenerator
             stars.Add(particle);
         }
 
-        // Dark dust lanes as thin spiral filaments (photo look).
-        var laneBundles = Math.Max(1, p.NumDustLanes / 40);
+        // Continuous spiral dust filaments (smooth walk - random jumps made blotches).
+        var laneBundles = Math.Max(0, p.NumDustLanes / 60);
         for (var i = 0; i < laneBundles; i++)
         {
-            var rad = p.RadCore * 0.7f + (p.RadGalaxy - p.RadCore * 0.55f) * Rnum();
-            var theta = 360f * Rnum();
-            var num = 20 + (int)(40 * Rnum());
-            var mag = 0.25f + 0.35f * Rnum();
+            var rad = p.RadCore * 0.8f + (p.RadGalaxy * 0.55f - p.RadCore * 0.5f) * Rnum();
+            // Prefer inner edges of the two arms.
+            var theta = (i % 2) * 180f + 8f * Rnum();
+            var num = 28 + (int)(36 * Rnum());
+            var mag = 0.12f + 0.14f * Rnum();
             for (var j = 0; j < num; j++)
             {
-                rad += 80f - 160f * Rnum();
-                rad = Math.Clamp(rad, p.RadCore * 0.55f, p.RadGalaxy * 0.98f);
+                rad += 40f + 30f * Rnum();
+                if (rad > p.RadGalaxy * 0.92f)
+                    break;
+                // Follow density-wave pitch so the filament stays continuous.
+                theta += (OrbitMath.GetAngularOffset(p, rad) - OrbitMath.GetAngularOffset(p, Math.Max(rad - 50f, p.RadCore)))
+                         / MathF.PI * 180f * 0.35f;
                 var lane = new Star
                 {
                     A = rad,
                     B = rad * OrbitMath.GetExcentricity(p, rad),
-                    TiltAngle = OrbitMath.GetAngularOffset(p, rad) + 0.05f + 0.04f * Rnum(),
-                    Theta0 = theta + 4f - 8f * Rnum(),
+                    TiltAngle = OrbitMath.GetAngularOffset(p, rad) + 0.035f + 0.02f * Rnum(),
+                    Theta0 = theta + 1.5f - 3f * Rnum(),
                     VelTheta = OrbitMath.GetOrbitalVelocity(p, (rad + rad * OrbitMath.GetExcentricity(p, rad)) / 2f),
                     Temp = 1800f,
-                    Mag = mag * (0.7f + 0.5f * Rnum()),
+                    Mag = mag * (0.7f + 0.4f * Rnum()),
                     Type = (int)ParticleType.DustLane,
-                    ColorR = 0.08f + 0.05f * Rnum(),
-                    ColorG = 0.045f + 0.03f * Rnum(),
-                    ColorB = 0.03f + 0.02f * Rnum(),
+                    ColorR = 0.70f + 0.08f * Rnum(),
+                    ColorG = 0.56f + 0.06f * Rnum(),
+                    ColorB = 0.46f + 0.05f * Rnum(),
                     ColorA = 1f,
                 };
                 stars.Add(lane);

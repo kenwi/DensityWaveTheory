@@ -25,16 +25,17 @@ void main()
         alpha = 1.0 - dist;
     } else if (vertexType == 1) {
         alpha = enableSoftGlow != 0
-            ? 0.055 * exp(-dist * dist * 2.0)
+            ? 0.045 * exp(-dist * dist * 1.6)
             : 0.05 * (1.0 - dist);
     } else if (vertexType == 2) {
         alpha = enableSoftGlow != 0
-            ? 0.07 * exp(-dist * dist * 1.8)
+            ? 0.06 * exp(-dist * dist * 1.7)
             : 0.065 * (1.0 - dist);
     } else if (vertexType == 5) {
-        // Stronger brown occlusion so lanes actually cut the arms.
-        alpha = 0.32 * exp(-dist * dist * 3.0) * clamp(vertexColor.a, 0.0, 1.0);
-        FragColor = vec4(vertexColor.rgb, alpha);
+        // Multiply-pass factor: 1 = no change, brown = soft veil (never near-black).
+        float strength = 0.22 * exp(-dist * dist * 4.5) * clamp(vertexColor.a, 0.0, 1.0);
+        vec3 factor = mix(vec3(1.0), clamp(vertexColor.rgb, 0.50, 1.0), strength);
+        FragColor = vec4(factor, 1.0);
         return;
     } else {
         alpha = 1.0 - dist;

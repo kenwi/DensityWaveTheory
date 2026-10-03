@@ -59,9 +59,9 @@ public sealed unsafe class ParticleRenderPipeline : IDisposable
         ComputeProgram.SetAdditiveBlend();
         ComputeProgram.DrawPoints(0, particleCount);
 
-        // Pass 1: dark dust lanes occlude the glow (alpha over).
+        // Pass 1: dust lanes multiply-darken (soft brown veil, no black punch-outs).
         ComputeProgram.SetUniformInt(_locRenderPass, 1);
-        ComputeProgram.SetAlphaBlend();
+        ComputeProgram.SetMultiplyBlend();
         ComputeProgram.DrawPoints(0, particleCount);
 
         ComputeProgram.DisableProgramPointSize();

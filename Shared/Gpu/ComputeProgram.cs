@@ -149,6 +149,13 @@ public static unsafe class ComputeProgram
         GlNative.BlendFunc(Constants.GlSrcAlpha, Constants.GlOneMinusSrcAlpha);
     }
 
+    /// <summary>Multiply dest by src.rgb - soft dust veils without punching black holes.</summary>
+    public static void SetMultiplyBlend()
+    {
+        GlNative.BlendEquation(Constants.GlFuncAdd);
+        GlNative.BlendFunc(Constants.GlZero, Constants.GlSrcColor);
+    }
+
     /// <summary>
     /// rlDrawVertexArray hardcodes GL_TRIANGLES; particles need GL_POINTS.
     /// </summary>
