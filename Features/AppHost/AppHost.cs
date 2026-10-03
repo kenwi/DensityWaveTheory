@@ -31,6 +31,8 @@ public sealed class AppHost : IDisposable
     public AppHost(string[]? args = null)
     {
         _camera = new Camera2DController(1920, 1200, _params.FieldOfView);
+        _axis.Visible = true;
+        _hud.ApplyPhotoLook(_params.PhotoLook);
         ParseArgs(args ?? []);
     }
 
@@ -48,6 +50,19 @@ public sealed class AppHost : IDisposable
                 _hud.ShowOverlay = true;
             else if (args[i] == "--no-axis")
                 _axis.Visible = false;
+            else if (args[i] == "--preset" && i + 1 < args.Length)
+            {
+                var name = args[++i].ToLowerInvariant();
+                _params = name switch
+                {
+                    "m81" => Presets.M81Approx(),
+                    "sb" => Presets.SpiralSb(),
+                    _ => Presets.ReferenceGalaxy1(),
+                };
+                _axis.Visible = !_params.PhotoLook && _axis.Visible;
+                _hud.ApplyPhotoLook(_params.PhotoLook);
+                _camera.SetFieldOfView(_params.FieldOfView, 1920, 1200);
+            }
         }
 
         if (_screenshotPath is not null && _screenshotAfterSec <= 0f)
@@ -103,8 +118,10 @@ public sealed class AppHost : IDisposable
                 _orbits.Dispatch(_params, _timeYears, (int)_hud.Features, _hud.Visuals, sizeFactor: 1f);
 
             Raylib.BeginDrawing();
-            // Reference: glClearColor(0, 0, 0.08, 0)
-            Raylib.ClearBackground(new Color(0, 0, 20, 255));
+            // Reference article: (0,0,0.08). Photo look uses deeper black like deep-sky frames.
+            Raylib.ClearBackground(_params.PhotoLook
+                ? new Color(0, 0, 0, 255)
+                : new Color(0, 0, 20, 255));
 
             Raylib.BeginMode2D(_camera.Camera);
             if (_gpuReady)
@@ -173,21 +190,36 @@ public sealed class AppHost : IDisposable
         }
 
         if (Raylib.IsKeyPressed(KeyboardKey.F5))
-        {
-            _params = Presets.SpiralSb();
-            RebuildGalaxy();
-            _camera.SetFieldOfView(_params.FieldOfView, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
-        }
+            ApplyPreset(Presets.SpiralSb());
 
         if (Raylib.IsKeyPressed(KeyboardKey.F6))
+            ApplyPreset(Presets.ReferenceGalaxy1());
+
+        if (Raylib.IsKeyPressed(KeyboardKey.F7))
+            ApplyPreset(Presets.M81Approx());
+
+        if (Raylib.IsKeyPressed(KeyboardKey.I))
         {
-            _params = Presets.ReferenceGalaxy1();
-            RebuildGalaxy();
-            _camera.SetFieldOfView(_params.FieldOfView, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
+            // Cycle face-on → shallow → M81-like inclination.
+            _params.InclinationDeg = _params.InclinationDeg switch
+            {
+                < 1f => 35f,
+                < 45f => 58f,
+                _ => 0f,
+            };
         }
 
         if (Raylib.IsKeyPressed(KeyboardKey.F11))
             Raylib.ToggleFullscreen();
+    }
+
+    private void ApplyPreset(GalaxyParams preset)
+    {
+        _params = preset;
+        _axis.Visible = !_params.PhotoLook;
+        _hud.ApplyPhotoLook(_params.PhotoLook);
+        RebuildGalaxy();
+        _camera.SetFieldOfView(_params.FieldOfView, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
     }
 
     private void RebuildGalaxy()

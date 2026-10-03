@@ -17,8 +17,16 @@ public sealed class GalaxyParams
     public float BaseTemp { get; set; } = 4000f;
     public float H2SizeMax { get; set; } = 100f;
     public float H2Threshold { get; set; } = 1.2f;
-    /// <summary>World-space horizontal field of view used to set camera zoom.</summary>
+    /// <summary>Occluding dark dust-lane particles (0 = none).</summary>
+    public int NumDustLanes { get; set; }
+    /// <summary>World-space vertical field of view used to set camera zoom.</summary>
     public float FieldOfView { get; set; } = 33960f;
+    /// <summary>Disc inclination from face-on, degrees (0 = face-on, ~58 ≈ M81).</summary>
+    public float InclinationDeg { get; set; }
+    /// <summary>In-plane view rotation after inclination, degrees.</summary>
+    public float ViewRotationDeg { get; set; }
+    /// <summary>Photographic grading: cream bulge, stronger pink H2, blue arms.</summary>
+    public bool PhotoLook { get; set; }
     public uint Seed { get; set; } = 42;
 
     public float RadFarField => RadGalaxy * 2f;

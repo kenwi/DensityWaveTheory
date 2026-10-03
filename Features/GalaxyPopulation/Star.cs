@@ -9,6 +9,7 @@ public enum ParticleType : int
     Filament = 2,
     H2Halo = 3,
     H2Core = 4,
+    DustLane = 5,
 }
 
 /// <summary>

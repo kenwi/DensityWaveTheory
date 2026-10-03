@@ -39,7 +39,7 @@ Capture a frame (relative path; Raylib prepends the working directory):
 dotnet run -c Release -- --screenshot screenshots/out.png --after 2 --freeze 2400000
 ```
 
-Optional flags: `--hud`, `--no-axis`, `--freeze <years>`, `--after <seconds>`.
+Optional flags: `--hud`, `--no-axis`, `--preset m81|galaxy1|sb`, `--freeze <years>`, `--after <seconds>`.
 
 If compute shaders are unavailable, the app falls back to a CPU star preview and prints build instructions.
 
@@ -57,11 +57,14 @@ If compute shaders are unavailable, the app falls back to a CPU star preview and
 | `G` | Toggle optional radial palette wash |
 | `B` | Toggle soft Gaussian dust glow |
 | `[` / `]` | Scale dust glow size |
+| `5` | Toggle dark dust lanes |
+| `I` | Cycle inclination (0° / 35° / 58°) |
 | `A` / `F4` | Toggle scale lines (axis + ticks + labels) |
 | `F2` / `D` | Density-wave overlay |
 | `F3` | Toggle dark-matter rotation curve |
 | `F5` | Full Sb preset (~200k+ particles) |
-| `F6` | Galaxy 1 / article-look preset |
+| `F6` | Face-on Galaxy 1 / article-look preset |
+| `F7` | M81-approx preset (inclined + dust lanes) |
 | `F11` | Toggle fullscreen |
 | `H` | Cycle HUD / help |
 

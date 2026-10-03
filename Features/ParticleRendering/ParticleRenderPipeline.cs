@@ -14,6 +14,7 @@ public sealed unsafe class ParticleRenderPipeline : IDisposable
     private int _locView;
     private int _locProj;
     private int _locEnableSoftGlow;
+    private int _locRenderPass;
 
     public bool IsReady => _ready;
 
@@ -28,6 +29,7 @@ public sealed unsafe class ParticleRenderPipeline : IDisposable
         _locView = ComputeProgram.GetUniformLocation(_program, "viewMat");
         _locProj = ComputeProgram.GetUniformLocation(_program, "projMat");
         _locEnableSoftGlow = ComputeProgram.GetUniformLocation(_program, "enableSoftGlow");
+        _locRenderPass = ComputeProgram.GetUniformLocation(_program, "renderPass");
 
         _vao = Rlgl.LoadVertexArray();
         _ready = true;
@@ -50,15 +52,18 @@ public sealed unsafe class ParticleRenderPipeline : IDisposable
 
         Rlgl.BindShaderBuffer(drawSsbo, 1);
         Rlgl.EnableVertexArray(_vao);
-
         ComputeProgram.EnableProgramPointSize();
-        // beltoforion: glBlendFunc(GL_SRC_ALPHA, GL_ONE) + GL_FUNC_ADD via raw GL
-        // so we do not depend on Raylib's BlendMode.Custom bookkeeping.
-        ComputeProgram.SetAdditiveBlend();
 
+        // Pass 0: luminous stars/dust/H2 (additive).
+        ComputeProgram.SetUniformInt(_locRenderPass, 0);
+        ComputeProgram.SetAdditiveBlend();
         ComputeProgram.DrawPoints(0, particleCount);
 
+        // Pass 1: dark dust lanes occlude the glow (alpha over).
+        ComputeProgram.SetUniformInt(_locRenderPass, 1);
         ComputeProgram.SetAlphaBlend();
+        ComputeProgram.DrawPoints(0, particleCount);
+
         ComputeProgram.DisableProgramPointSize();
         Rlgl.DisableShader();
     }

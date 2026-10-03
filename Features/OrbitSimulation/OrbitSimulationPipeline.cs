@@ -34,6 +34,9 @@ public sealed unsafe class OrbitSimulationPipeline : IDisposable
     private int _locPaletteStrength;
     private int _locEnableSoftGlow;
     private int _locGlowStrength;
+    private int _locInclinationDeg;
+    private int _locViewRotationDeg;
+    private int _locPhotoLook;
 
     public int ParticleCount => _particleCount;
     public uint DrawSsbo => _drawSsbo;
@@ -64,6 +67,9 @@ public sealed unsafe class OrbitSimulationPipeline : IDisposable
         _locPaletteStrength = ComputeProgram.GetUniformLocation(_computeProgram, "paletteStrength");
         _locEnableSoftGlow = ComputeProgram.GetUniformLocation(_computeProgram, "enableSoftGlow");
         _locGlowStrength = ComputeProgram.GetUniformLocation(_computeProgram, "glowStrength");
+        _locInclinationDeg = ComputeProgram.GetUniformLocation(_computeProgram, "inclinationDeg");
+        _locViewRotationDeg = ComputeProgram.GetUniformLocation(_computeProgram, "viewRotationDeg");
+        _locPhotoLook = ComputeProgram.GetUniformLocation(_computeProgram, "photoLook");
 
         _ready = true;
     }
@@ -115,6 +121,9 @@ public sealed unsafe class OrbitSimulationPipeline : IDisposable
         ComputeProgram.SetUniformFloat(_locPaletteStrength, visuals.PaletteStrength);
         ComputeProgram.SetUniformInt(_locEnableSoftGlow, visuals.SoftGlow ? 1 : 0);
         ComputeProgram.SetUniformFloat(_locGlowStrength, visuals.GlowStrength);
+        ComputeProgram.SetUniformFloat(_locInclinationDeg, p.InclinationDeg);
+        ComputeProgram.SetUniformFloat(_locViewRotationDeg, p.ViewRotationDeg);
+        ComputeProgram.SetUniformInt(_locPhotoLook, p.PhotoLook ? 1 : 0);
 
         Rlgl.BindShaderBuffer(_starSsbo, 0);
         Rlgl.BindShaderBuffer(_drawSsbo, 1);

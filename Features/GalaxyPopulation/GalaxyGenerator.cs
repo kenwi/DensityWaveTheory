@@ -17,7 +17,7 @@ public sealed class GalaxyGenerator
             p.RadFarField,
             1000);
 
-        var countEstimate = p.NumStars + p.NumDust + p.NumDust / 100 * 50 + p.NumH2 * 2;
+        var countEstimate = p.NumStars + p.NumDust + p.NumDust / 100 * 50 + p.NumH2 * 2 + p.NumDustLanes;
         var stars = new List<Star>(countEstimate);
 
         for (var i = 0; i < p.NumStars; i++)
@@ -120,6 +120,37 @@ public sealed class GalaxyGenerator
             stars.Add(particle);
             particle.Type = (int)ParticleType.H2Core;
             stars.Add(particle);
+        }
+
+        // Dark dust lanes as thin spiral filaments (photo look).
+        var laneBundles = Math.Max(1, p.NumDustLanes / 40);
+        for (var i = 0; i < laneBundles; i++)
+        {
+            var rad = p.RadCore * 0.7f + (p.RadGalaxy - p.RadCore * 0.55f) * Rnum();
+            var theta = 360f * Rnum();
+            var num = 20 + (int)(40 * Rnum());
+            var mag = 0.25f + 0.35f * Rnum();
+            for (var j = 0; j < num; j++)
+            {
+                rad += 80f - 160f * Rnum();
+                rad = Math.Clamp(rad, p.RadCore * 0.55f, p.RadGalaxy * 0.98f);
+                var lane = new Star
+                {
+                    A = rad,
+                    B = rad * OrbitMath.GetExcentricity(p, rad),
+                    TiltAngle = OrbitMath.GetAngularOffset(p, rad) + 0.05f + 0.04f * Rnum(),
+                    Theta0 = theta + 4f - 8f * Rnum(),
+                    VelTheta = OrbitMath.GetOrbitalVelocity(p, (rad + rad * OrbitMath.GetExcentricity(p, rad)) / 2f),
+                    Temp = 1800f,
+                    Mag = mag * (0.7f + 0.5f * Rnum()),
+                    Type = (int)ParticleType.DustLane,
+                    ColorR = 0.08f + 0.05f * Rnum(),
+                    ColorG = 0.045f + 0.03f * Rnum(),
+                    ColorB = 0.03f + 0.02f * Rnum(),
+                    ColorA = 1f,
+                };
+                stars.Add(lane);
+            }
         }
 
         return stars.ToArray();
