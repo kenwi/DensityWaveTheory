@@ -49,6 +49,8 @@ uniform float angleOffset;
 uniform float h2SizeMax;
 uniform float h2Threshold;
 uniform int displayFeatures;
+uniform int enableRadialPalette;
+uniform float paletteStrength;
 
 vec2 calcPos(float a, float b, float theta, float velTheta, float timeSec, float tiltAngle) {
     float thetaActual = theta + velTheta * timeSec;
@@ -84,6 +86,34 @@ float tiltAt(float r) {
     return r * angleOffset;
 }
 
+// Warm amber core -> peach mid-disk -> cool blue outer rim.
+vec3 radialPalette(float r) {
+    float t = clamp(r / max(radGalaxy, 1.0), 0.0, 1.5);
+    vec3 core = vec3(1.00, 0.72, 0.35);
+    vec3 mid  = vec3(1.00, 0.55, 0.42);
+    vec3 outer = vec3(0.45, 0.65, 1.00);
+    vec3 halo = vec3(0.55, 0.45, 0.95);
+
+    if (t < 0.35)
+        return mix(core, mid, t / 0.35);
+    if (t < 1.0)
+        return mix(mid, outer, (t - 0.35) / 0.65);
+    return mix(outer, halo, clamp((t - 1.0) / 0.5, 0.0, 1.0));
+}
+
+vec4 applyPalette(vec4 baseColor, float r, int type) {
+    if (enableRadialPalette == 0 || type == 3 || type == 4)
+        return baseColor;
+
+    float strength = paletteStrength;
+    // Dust picks up more of the wash so the nebula reads as layered glow.
+    if (type == 1 || type == 2)
+        strength = min(paletteStrength * 1.35, 0.85);
+
+    vec3 washed = mix(baseColor.rgb, radialPalette(r), strength);
+    return vec4(washed, baseColor.a);
+}
+
 void main() {
     uint id = gl_GlobalInvocationID.x;
     if (id >= uint(particleCount))
@@ -93,7 +123,7 @@ void main() {
     vec2 ps = calcPos(s.a, s.b, s.theta0, s.velTheta, time, s.tiltAngle);
 
     float pointSize = 1.0;
-    vec4 baseColor = vec4(s.colorR, s.colorG, s.colorB, s.colorA);
+    vec4 baseColor = applyPalette(vec4(s.colorR, s.colorG, s.colorB, s.colorA), s.a, s.type);
     vec4 vertexColor = baseColor * s.mag;
     int type = s.type;
 

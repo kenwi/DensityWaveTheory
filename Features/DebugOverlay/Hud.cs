@@ -1,4 +1,5 @@
 using DensityWaveTheory.Features.GalaxyPopulation;
+using DensityWaveTheory.Shared;
 using Raylib_cs;
 
 namespace DensityWaveTheory.Features.DebugOverlay;
@@ -17,6 +18,7 @@ public enum DisplayFeatures
 public sealed class Hud
 {
     public DisplayFeatures Features { get; private set; } = DisplayFeatures.All;
+    public VisualEffects Visuals { get; } = new();
     public bool ShowHelp { get; private set; } = true;
 
     public void Update()
@@ -29,10 +31,16 @@ public sealed class Hud
             Toggle(DisplayFeatures.Filaments);
         if (Raylib.IsKeyPressed(KeyboardKey.Four))
             Toggle(DisplayFeatures.H2);
+        if (Raylib.IsKeyPressed(KeyboardKey.G))
+            Visuals.RadialPalette = !Visuals.RadialPalette;
+        if (Raylib.IsKeyPressed(KeyboardKey.B))
+            Visuals.SoftGlow = !Visuals.SoftGlow;
+        if (Raylib.IsKeyPressed(KeyboardKey.LeftBracket))
+            Visuals.GlowStrength = MathF.Max(0.5f, Visuals.GlowStrength - 0.15f);
+        if (Raylib.IsKeyPressed(KeyboardKey.RightBracket))
+            Visuals.GlowStrength = MathF.Min(3f, Visuals.GlowStrength + 0.15f);
         if (Raylib.IsKeyPressed(KeyboardKey.H))
             ShowHelp = !ShowHelp;
-        if (Raylib.IsKeyPressed(KeyboardKey.D))
-            return; // density waves toggled by AppHost via F2/D
     }
 
     private void Toggle(DisplayFeatures flag) => Features ^= flag;
@@ -58,6 +66,7 @@ public sealed class Hud
         Line($"t = {timeYears:F1} yr   speed x{simSpeed:0.##}{(paused ? "  PAUSED" : "")}");
         Line($"core {p.RadCore:0}  disk {p.RadGalaxy:0}  offset {p.AngleOffset:0.####}");
         Line($"dark matter {(darkMatter ? "on" : "off")}  waves {(wavesVisible ? "on" : "off")}");
+        Line($"palette {(Visuals.RadialPalette ? "on" : "off")}  soft glow {(Visuals.SoftGlow ? "on" : "off")} x{Visuals.GlowStrength:0.00}");
         Line($"features: {Features}");
 
         if (!ShowHelp)
@@ -67,6 +76,7 @@ public sealed class Hud
         Line("Space pause  +/- speed  0 reset speed");
         Line("RMB/MMB pan  wheel zoom");
         Line("1-4 toggle stars/dust/filaments/H2");
+        Line("G radial palette  B soft glow  [/] glow strength");
         Line("F2 density waves  F3 dark matter  F5 Sb preset  H help");
     }
 }

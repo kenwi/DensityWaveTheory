@@ -43,6 +43,9 @@ If compute shaders are unavailable, the app falls back to a CPU star preview and
 | RMB / MMB | Pan |
 | Wheel | Zoom |
 | `1`-`4` | Toggle stars / dust / filaments / H2 |
+| `G` | Toggle radial color palette (warm core / cool rim) |
+| `B` | Toggle soft glow (wide bloom halo + soft cores) |
+| `[` / `]` | Decrease / increase glow strength |
 | `F2` / `D` | Density-wave overlay |
 | `F3` | Toggle dark-matter rotation curve |
 | `F5` | Full Sb preset (~200k+ particles) |

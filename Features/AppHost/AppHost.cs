@@ -58,7 +58,7 @@ public sealed class AppHost : IDisposable
                 _timeYears += Raylib.GetFrameTime() * 200_000f * _camera.SimSpeed;
 
             if (_gpuReady)
-                _orbits.Dispatch(_params, _timeYears, (int)_hud.Features);
+                _orbits.Dispatch(_params, _timeYears, (int)_hud.Features, _hud.Visuals);
 
             Raylib.BeginDrawing();
             Raylib.ClearBackground(new Color(2, 2, 8, 255));
@@ -69,7 +69,7 @@ public sealed class AppHost : IDisposable
                 // Use the matrices Mode2D just installed so world units match overlays.
                 var view = Rlgl.GetMatrixModelview();
                 var proj = Rlgl.GetMatrixProjection();
-                _renderer.Draw(_orbits.DrawSsbo, _orbits.ParticleCount, view, proj);
+                _renderer.Draw(_orbits.DrawSsbo, _orbits.ParticleCount, view, proj, _hud.Visuals);
             }
             else
             {

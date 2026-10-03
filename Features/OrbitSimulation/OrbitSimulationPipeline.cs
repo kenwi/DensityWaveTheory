@@ -1,4 +1,5 @@
 using DensityWaveTheory.Features.GalaxyPopulation;
+using DensityWaveTheory.Shared;
 using DensityWaveTheory.Shared.Gpu;
 using Raylib_cs;
 
@@ -29,6 +30,8 @@ public sealed unsafe class OrbitSimulationPipeline : IDisposable
     private int _locH2SizeMax;
     private int _locH2Threshold;
     private int _locDisplayFeatures;
+    private int _locEnableRadialPalette;
+    private int _locPaletteStrength;
 
     public int ParticleCount => _particleCount;
     public uint DrawSsbo => _drawSsbo;
@@ -55,6 +58,8 @@ public sealed unsafe class OrbitSimulationPipeline : IDisposable
         _locH2SizeMax = ComputeProgram.GetUniformLocation(_computeProgram, "h2SizeMax");
         _locH2Threshold = ComputeProgram.GetUniformLocation(_computeProgram, "h2Threshold");
         _locDisplayFeatures = ComputeProgram.GetUniformLocation(_computeProgram, "displayFeatures");
+        _locEnableRadialPalette = ComputeProgram.GetUniformLocation(_computeProgram, "enableRadialPalette");
+        _locPaletteStrength = ComputeProgram.GetUniformLocation(_computeProgram, "paletteStrength");
 
         _ready = true;
     }
@@ -75,7 +80,12 @@ public sealed unsafe class OrbitSimulationPipeline : IDisposable
         _drawSsbo = ComputeProgram.CreateEmptySsbo(drawBytes, Rlgl.DYNAMIC_COPY);
     }
 
-    public void Dispatch(GalaxyParams p, float timeYears, int displayFeatures, float sizeFactor = 1f)
+    public void Dispatch(
+        GalaxyParams p,
+        float timeYears,
+        int displayFeatures,
+        VisualEffects visuals,
+        float sizeFactor = 1f)
     {
         if (!_ready || _particleCount == 0)
             return;
@@ -97,6 +107,8 @@ public sealed unsafe class OrbitSimulationPipeline : IDisposable
         ComputeProgram.SetUniformFloat(_locH2SizeMax, p.H2SizeMax);
         ComputeProgram.SetUniformFloat(_locH2Threshold, p.H2Threshold);
         ComputeProgram.SetUniformInt(_locDisplayFeatures, displayFeatures);
+        ComputeProgram.SetUniformInt(_locEnableRadialPalette, visuals.RadialPalette ? 1 : 0);
+        ComputeProgram.SetUniformFloat(_locPaletteStrength, visuals.PaletteStrength);
 
         Rlgl.BindShaderBuffer(_starSsbo, 0);
         Rlgl.BindShaderBuffer(_drawSsbo, 1);

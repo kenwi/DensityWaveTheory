@@ -1,4 +1,5 @@
 using System.Numerics;
+using DensityWaveTheory.Shared;
 using DensityWaveTheory.Shared.Gpu;
 using Raylib_cs;
 
@@ -12,6 +13,9 @@ public sealed unsafe class ParticleRenderPipeline : IDisposable
 
     private int _locView;
     private int _locProj;
+    private int _locEnableSoftGlow;
+    private int _locGlowPass;
+    private int _locGlowStrength;
 
     public bool IsReady => _ready;
 
@@ -25,12 +29,15 @@ public sealed unsafe class ParticleRenderPipeline : IDisposable
 
         _locView = ComputeProgram.GetUniformLocation(_program, "viewMat");
         _locProj = ComputeProgram.GetUniformLocation(_program, "projMat");
+        _locEnableSoftGlow = ComputeProgram.GetUniformLocation(_program, "enableSoftGlow");
+        _locGlowPass = ComputeProgram.GetUniformLocation(_program, "glowPass");
+        _locGlowStrength = ComputeProgram.GetUniformLocation(_program, "glowStrength");
 
         _vao = Rlgl.LoadVertexArray();
         _ready = true;
     }
 
-    public void Draw(uint drawSsbo, int particleCount, Matrix4x4 view, Matrix4x4 projection)
+    public void Draw(uint drawSsbo, int particleCount, Matrix4x4 view, Matrix4x4 projection, VisualEffects visuals)
     {
         if (!_ready || particleCount <= 0 || drawSsbo == 0)
             return;
@@ -43,6 +50,9 @@ public sealed unsafe class ParticleRenderPipeline : IDisposable
         if (_locProj >= 0)
             Rlgl.SetUniformMatrix(_locProj, projection);
 
+        ComputeProgram.SetUniformInt(_locEnableSoftGlow, visuals.SoftGlow ? 1 : 0);
+        ComputeProgram.SetUniformFloat(_locGlowStrength, visuals.GlowStrength);
+
         Rlgl.BindShaderBuffer(drawSsbo, 1);
         Rlgl.EnableVertexArray(_vao);
 
@@ -50,7 +60,14 @@ public sealed unsafe class ParticleRenderPipeline : IDisposable
         Rlgl.EnableColorBlend();
         Rlgl.SetBlendFactors(Rlgl.SRC_ALPHA, Rlgl.ONE, Rlgl.FUNC_ADD);
 
-        // rlDrawVertexArray always uses GL_TRIANGLES; draw points explicitly.
+        if (visuals.SoftGlow)
+        {
+            // Wide bloom halo first, then brighter cores on top.
+            ComputeProgram.SetUniformInt(_locGlowPass, 1);
+            ComputeProgram.DrawPoints(0, particleCount);
+        }
+
+        ComputeProgram.SetUniformInt(_locGlowPass, 0);
         ComputeProgram.DrawPoints(0, particleCount);
 
         Rlgl.SetBlendMode(BlendMode.Alpha);
@@ -66,7 +83,6 @@ public sealed unsafe class ParticleRenderPipeline : IDisposable
             _program = 0;
         }
 
-        // rlUnloadVertexArray may not be exposed; leave VAO for process lifetime if needed
         _ready = false;
     }
 }
