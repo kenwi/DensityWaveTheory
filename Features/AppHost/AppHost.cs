@@ -49,6 +49,8 @@ public sealed class AppHost : IDisposable
                 _freezeAtYears = float.Parse(args[++i]);
             else if (args[i] == "--hud")
                 _hud.ShowOverlay = true;
+            else if (args[i] == "--no-hud")
+                _hud.ShowOverlay = false;
             else if (args[i] == "--no-axis")
                 _axis.Visible = false;
             else if (args[i] == "--fov" && i + 1 < args.Length)
@@ -70,6 +72,10 @@ public sealed class AppHost : IDisposable
 
         if (_cliFov is float fov)
             _camera.SetFieldOfView(fov, 1920, 1200);
+
+        // Clean capture frames unless --hud was requested explicitly.
+        if (_screenshotPath is not null && !args.Contains("--hud"))
+            _hud.ShowOverlay = false;
 
         if (_screenshotPath is not null && _screenshotAfterSec <= 0f)
             _screenshotAfterSec = 2.5f;

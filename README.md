@@ -27,7 +27,7 @@ The `.csproj` copies `native/raylib-gl43/` into the RID native folder after ever
 
 ## Run
 
-Starts **fullscreen** by default (FOV-matched camera, axis overlay on, HUD off):
+Starts **fullscreen** by default (FOV-matched camera, axis overlay on, HUD on):
 
 ```bash
 dotnet run -c Release
@@ -39,7 +39,7 @@ Capture a frame (relative path; Raylib prepends the working directory):
 dotnet run -c Release -- --screenshot screenshots/out.png --after 2 --freeze 2400000
 ```
 
-Optional flags: `--hud`, `--no-axis`, `--preset m81|galaxy1|sb`, `--freeze <years>`, `--after <seconds>`.
+Optional flags: `--hud`, `--no-hud`, `--no-axis`, `--fov <units>`, `--preset m81|galaxy1|sb`, `--freeze <years>`, `--after <seconds>`. Screenshots hide the HUD unless `--hud` is passed.
 
 If compute shaders are unavailable, the app falls back to a CPU star preview and prints build instructions.
 

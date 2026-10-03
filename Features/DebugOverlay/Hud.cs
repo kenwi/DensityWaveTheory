@@ -18,10 +18,15 @@ public enum DisplayFeatures
 
 public sealed class Hud
 {
+    private const double TimeRefreshSec = 0.25;
+
     public DisplayFeatures Features { get; private set; } = DisplayFeatures.All;
     public VisualEffects Visuals { get; } = new();
-    public bool ShowOverlay { get; set; }
+    public bool ShowOverlay { get; set; } = true;
     public bool ShowHelp { get; private set; }
+
+    private double _nextTimeRefresh;
+    private float _displayedTimeMyr;
 
     public void ApplyPhotoLook(bool photoLook)
     {
@@ -84,6 +89,13 @@ public sealed class Hud
         if (!ShowOverlay)
             return;
 
+        var now = Raylib.GetTime();
+        if (now >= _nextTimeRefresh)
+        {
+            _displayedTimeMyr = timeYears / 1_000_000f;
+            _nextTimeRefresh = now + TimeRefreshSec;
+        }
+
         var fps = Raylib.GetFPS();
         var y = 10;
         void Line(string text)
@@ -93,7 +105,7 @@ public sealed class Hud
         }
 
         Line($"FPS {fps}  particles {particleCount:N0}");
-        Line($"t = {timeYears:F1} yr   speed x{simSpeed:0.##}{(paused ? "  PAUSED" : "")}");
+        Line($"t = {_displayedTimeMyr:F2} Myr   speed x{simSpeed:0.##}{(paused ? "  PAUSED" : "")}");
         Line($"core {p.RadCore:0}  disk {p.RadGalaxy:0}  offset {p.AngleOffset:0.####}");
         Line($"fov {fieldOfView:0}  dust {p.DustRenderSize:0}  temp {p.BaseTemp:0}");
         Line($"incl {p.InclinationDeg:0}°  rot {p.ViewRotationDeg:0}°  photo {(p.PhotoLook ? "on" : "off")}");

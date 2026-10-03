@@ -65,7 +65,11 @@ public sealed unsafe class ParticleRenderPipeline : IDisposable
         ComputeProgram.DrawPoints(0, particleCount);
 
         ComputeProgram.DisableProgramPointSize();
+        Rlgl.DisableVertexArray();
         Rlgl.DisableShader();
+        // Restore Raylib-friendly blending so HUD/text are not left in multiply mode.
+        ComputeProgram.SetAlphaBlend();
+        Rlgl.DrawRenderBatchActive();
     }
 
     public void Dispose()
