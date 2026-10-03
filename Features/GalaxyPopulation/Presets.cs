@@ -27,6 +27,7 @@ public static class Presets
         InclinationDeg = 0f,
         ViewRotationDeg = 0f,
         PhotoLook = false,
+        NumBackgroundStars = 6000,
         Seed = 420,
     };
 
@@ -56,6 +57,7 @@ public static class Presets
         InclinationDeg = 62f,
         ViewRotationDeg = 22f,
         PhotoLook = true,
+        NumBackgroundStars = 10000,
         Seed = 81,
     };
 

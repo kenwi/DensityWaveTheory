@@ -3,6 +3,7 @@ using DensityWaveTheory.Features.DebugOverlay;
 using DensityWaveTheory.Features.GalaxyPopulation;
 using DensityWaveTheory.Features.OrbitSimulation;
 using DensityWaveTheory.Features.ParticleRendering;
+using DensityWaveTheory.Features.Starfield;
 using Raylib_cs;
 
 namespace DensityWaveTheory.Features.AppHost;
@@ -16,6 +17,7 @@ public sealed class AppHost : IDisposable
     private readonly DensityWaveOverlay _waves = new();
     private readonly AxisOverlay _axis = new();
     private readonly Hud _hud = new();
+    private readonly StarfieldRenderer _starfield = new();
 
     private GalaxyParams _params = Presets.ReferenceGalaxy1();
     private Star[] _stars = [];
@@ -151,6 +153,7 @@ public sealed class AppHost : IDisposable
                 : new Color(0, 0, 20, 255));
 
             Raylib.BeginMode2D(_camera.Camera);
+            _starfield.Draw(_camera.Camera.Zoom);
             if (_gpuReady)
             {
                 var view = Rlgl.GetMatrixModelview();
@@ -253,6 +256,9 @@ public sealed class AppHost : IDisposable
     {
         _stars = _generator.Generate(_params);
         _timeYears = _freezeAtYears > 0 ? _freezeAtYears : 0f;
+        // Cover camera max zoom-out (FOV clamp 60000) with a little margin.
+        var extent = 60000f * 1.15f;
+        _starfield.Rebuild(_params.Seed, extent, _params.NumBackgroundStars);
         if (_gpuReady)
             _orbits.UploadStars(_stars);
     }

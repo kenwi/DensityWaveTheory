@@ -27,6 +27,8 @@ public sealed class GalaxyParams
     public float ViewRotationDeg { get; set; }
     /// <summary>Photographic grading: cream bulge, stronger pink H2, blue arms.</summary>
     public bool PhotoLook { get; set; }
+    /// <summary>Static distant field stars drawn behind the galaxy.</summary>
+    public int NumBackgroundStars { get; set; } = 8000;
     public uint Seed { get; set; } = 42;
 
     public float RadFarField => RadGalaxy * 2f;
