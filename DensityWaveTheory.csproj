@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>DensityWaveTheory</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Raylib-cs" Version="8.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Features\**\Shaders\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!-- Prefer a locally built OpenGL 4.3 libraylib over the NuGet 3.3 binary. -->
+  <Target Name="CopyGl43Raylib" AfterTargets="Build">
+    <PropertyGroup>
+      <_Gl43Dir>$(MSBuildProjectDirectory)/native/raylib-gl43</_Gl43Dir>
+      <_RidNative>$(OutputPath)runtimes/linux-x64/native</_RidNative>
+    </PropertyGroup>
+    <ItemGroup Condition="Exists('$(_Gl43Dir)/libraylib.so')">
+      <_Gl43Libs Include="$(_Gl43Dir)/libraylib.so*" />
+    </ItemGroup>
+    <Copy
+      Condition="'@(_Gl43Libs)' != ''"
+      SourceFiles="@(_Gl43Libs)"
+      DestinationFolder="$(_RidNative)"
+      SkipUnchangedFiles="true" />
+    <Copy
+      Condition="'@(_Gl43Libs)' != ''"
+      SourceFiles="@(_Gl43Libs)"
+      DestinationFolder="$(OutputPath)"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

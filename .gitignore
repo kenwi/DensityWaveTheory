@@ -1,0 +1,8 @@
+bin/
+obj/
+native/raylib-build/
+native/raylib-gl43/
+*.user
+.vs/
+.idea/
+/tmp/
