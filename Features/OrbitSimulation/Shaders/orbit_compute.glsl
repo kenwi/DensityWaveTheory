@@ -40,6 +40,7 @@ uniform int pertN;
 uniform float pertAmp;
 uniform int dustSize;
 uniform float sizeFactor;
+uniform float brightnessFactor;
 uniform float radCore;
 uniform float radGalaxy;
 uniform float radFarField;
@@ -219,6 +220,10 @@ void main() {
     }
 
     pointSize = max(pointSize * sizeFactor, 0.0);
+
+    // Keep additive brightness roughly FOV-invariant (skip multiply dust lanes).
+    if (type != 5)
+        vertexColor.rgb *= brightnessFactor;
 
     ParticleDraw d;
     d.pos = ps;

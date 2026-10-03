@@ -25,6 +25,7 @@ public sealed class AppHost : IDisposable
     private string? _screenshotPath;
     private float _screenshotAfterSec;
     private float _freezeAtYears = 2_400_000f;
+    private float? _cliFov;
     private float _elapsedSec;
     private bool _screenshotTaken;
 
@@ -50,6 +51,8 @@ public sealed class AppHost : IDisposable
                 _hud.ShowOverlay = true;
             else if (args[i] == "--no-axis")
                 _axis.Visible = false;
+            else if (args[i] == "--fov" && i + 1 < args.Length)
+                _cliFov = float.Parse(args[++i]);
             else if (args[i] == "--preset" && i + 1 < args.Length)
             {
                 var name = args[++i].ToLowerInvariant();
@@ -65,6 +68,9 @@ public sealed class AppHost : IDisposable
             }
         }
 
+        if (_cliFov is float fov)
+            _camera.SetFieldOfView(fov, 1920, 1200);
+
         if (_screenshotPath is not null && _screenshotAfterSec <= 0f)
             _screenshotAfterSec = 2.5f;
     }
@@ -79,7 +85,7 @@ public sealed class AppHost : IDisposable
 
         var w = Raylib.GetScreenWidth();
         var h = Raylib.GetScreenHeight();
-        _camera.SetFieldOfView(_params.FieldOfView, w, h);
+        _camera.SetFieldOfView(_cliFov ?? _params.FieldOfView, w, h);
 
         try
         {
@@ -115,7 +121,22 @@ public sealed class AppHost : IDisposable
                 _timeYears += Raylib.GetFrameTime() * 200_000f * _camera.SimSpeed;
 
             if (_gpuReady)
-                _orbits.Dispatch(_params, _timeYears, (int)_hud.Features, _hud.Visuals, sizeFactor: 1f);
+            {
+                // Point sizes are in pixels; packing density scales with zoom^2.
+                // Scale size with zoom (clamped). Residual intensity uses a soft
+                // power - full ^2 over-brightens the saturated core when zoomed in.
+                var zoomRatio = _params.FieldOfView / Math.Max(_camera.FieldOfView, 1f);
+                var sizeFactor = Math.Clamp(zoomRatio, 0.4f, 3.25f);
+                var residual = zoomRatio / sizeFactor;
+                var brightnessFactor = Math.Clamp(MathF.Pow(residual, 1.25f), 0.25f, 6f);
+                _orbits.Dispatch(
+                    _params,
+                    _timeYears,
+                    (int)_hud.Features,
+                    _hud.Visuals,
+                    sizeFactor,
+                    brightnessFactor);
+            }
 
             Raylib.BeginDrawing();
             // Reference article: (0,0,0.08). Photo look uses deeper black like deep-sky frames.

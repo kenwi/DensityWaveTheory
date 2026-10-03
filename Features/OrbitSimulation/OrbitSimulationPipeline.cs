@@ -21,6 +21,7 @@ public sealed unsafe class OrbitSimulationPipeline : IDisposable
     private int _locPertAmp;
     private int _locDustSize;
     private int _locSizeFactor;
+    private int _locBrightnessFactor;
     private int _locRadCore;
     private int _locRadGalaxy;
     private int _locRadFarField;
@@ -54,6 +55,7 @@ public sealed unsafe class OrbitSimulationPipeline : IDisposable
         _locPertAmp = ComputeProgram.GetUniformLocation(_computeProgram, "pertAmp");
         _locDustSize = ComputeProgram.GetUniformLocation(_computeProgram, "dustSize");
         _locSizeFactor = ComputeProgram.GetUniformLocation(_computeProgram, "sizeFactor");
+        _locBrightnessFactor = ComputeProgram.GetUniformLocation(_computeProgram, "brightnessFactor");
         _locRadCore = ComputeProgram.GetUniformLocation(_computeProgram, "radCore");
         _locRadGalaxy = ComputeProgram.GetUniformLocation(_computeProgram, "radGalaxy");
         _locRadFarField = ComputeProgram.GetUniformLocation(_computeProgram, "radFarField");
@@ -95,7 +97,8 @@ public sealed unsafe class OrbitSimulationPipeline : IDisposable
         float timeYears,
         int displayFeatures,
         VisualEffects visuals,
-        float sizeFactor = 1f)
+        float sizeFactor = 1f,
+        float brightnessFactor = 1f)
     {
         if (!_ready || _particleCount == 0)
             return;
@@ -108,6 +111,7 @@ public sealed unsafe class OrbitSimulationPipeline : IDisposable
         ComputeProgram.SetUniformFloat(_locPertAmp, p.PertAmp);
         ComputeProgram.SetUniformInt(_locDustSize, (int)p.DustRenderSize);
         ComputeProgram.SetUniformFloat(_locSizeFactor, sizeFactor);
+        ComputeProgram.SetUniformFloat(_locBrightnessFactor, brightnessFactor);
         ComputeProgram.SetUniformFloat(_locRadCore, p.RadCore);
         ComputeProgram.SetUniformFloat(_locRadGalaxy, p.RadGalaxy);
         ComputeProgram.SetUniformFloat(_locRadFarField, p.RadFarField);
