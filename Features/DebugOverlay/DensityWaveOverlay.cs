@@ -6,7 +6,7 @@ namespace DensityWaveTheory.Features.DebugOverlay;
 
 public sealed class DensityWaveOverlay
 {
-    public bool Visible { get; set; } = true;
+    public bool Visible { get; set; }
 
     public void Draw(GalaxyParams p, int pertN, float pertAmp)
     {

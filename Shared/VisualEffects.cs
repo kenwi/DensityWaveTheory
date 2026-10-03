@@ -1,16 +1,16 @@
 namespace DensityWaveTheory.Shared;
 
-/// <summary>Toggleable post-style look options for the galaxy render.</summary>
+/// <summary>Toggleable look options. Soft glow follows beltoforion: dust nebula, sharp stars.</summary>
 public sealed class VisualEffects
 {
-    /// <summary>Warm core to cool outer-disk palette mixed over blackbody colors.</summary>
-    public bool RadialPalette { get; set; } = true;
+    /// <summary>Optional wash over blackbody colors. Off by default so dust temperature drives the look.</summary>
+    public bool RadialPalette { get; set; }
 
-    /// <summary>Gaussian soft falloff + wide bloom halo pass.</summary>
+    /// <summary>Widen/soften dust (and filaments) into a nebula. Stars stay small and sharp.</summary>
     public bool SoftGlow { get; set; } = true;
 
-    public float PaletteStrength { get; set; } = 0.45f;
+    public float PaletteStrength { get; set; } = 0.25f;
 
-    /// <summary>Scales bloom size/intensity when soft glow is on (1 = default strong glow).</summary>
-    public float GlowStrength { get; set; } = 1.35f;
+    /// <summary>Scales dust sprite size when soft glow is on.</summary>
+    public float GlowStrength { get; set; } = 1.15f;
 }

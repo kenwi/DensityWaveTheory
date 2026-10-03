@@ -32,6 +32,8 @@ public sealed unsafe class OrbitSimulationPipeline : IDisposable
     private int _locDisplayFeatures;
     private int _locEnableRadialPalette;
     private int _locPaletteStrength;
+    private int _locEnableSoftGlow;
+    private int _locGlowStrength;
 
     public int ParticleCount => _particleCount;
     public uint DrawSsbo => _drawSsbo;
@@ -60,6 +62,8 @@ public sealed unsafe class OrbitSimulationPipeline : IDisposable
         _locDisplayFeatures = ComputeProgram.GetUniformLocation(_computeProgram, "displayFeatures");
         _locEnableRadialPalette = ComputeProgram.GetUniformLocation(_computeProgram, "enableRadialPalette");
         _locPaletteStrength = ComputeProgram.GetUniformLocation(_computeProgram, "paletteStrength");
+        _locEnableSoftGlow = ComputeProgram.GetUniformLocation(_computeProgram, "enableSoftGlow");
+        _locGlowStrength = ComputeProgram.GetUniformLocation(_computeProgram, "glowStrength");
 
         _ready = true;
     }
@@ -109,6 +113,8 @@ public sealed unsafe class OrbitSimulationPipeline : IDisposable
         ComputeProgram.SetUniformInt(_locDisplayFeatures, displayFeatures);
         ComputeProgram.SetUniformInt(_locEnableRadialPalette, visuals.RadialPalette ? 1 : 0);
         ComputeProgram.SetUniformFloat(_locPaletteStrength, visuals.PaletteStrength);
+        ComputeProgram.SetUniformInt(_locEnableSoftGlow, visuals.SoftGlow ? 1 : 0);
+        ComputeProgram.SetUniformFloat(_locGlowStrength, visuals.GlowStrength);
 
         Rlgl.BindShaderBuffer(_starSsbo, 0);
         Rlgl.BindShaderBuffer(_drawSsbo, 1);

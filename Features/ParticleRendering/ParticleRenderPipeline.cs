@@ -14,8 +14,6 @@ public sealed unsafe class ParticleRenderPipeline : IDisposable
     private int _locView;
     private int _locProj;
     private int _locEnableSoftGlow;
-    private int _locGlowPass;
-    private int _locGlowStrength;
 
     public bool IsReady => _ready;
 
@@ -30,8 +28,6 @@ public sealed unsafe class ParticleRenderPipeline : IDisposable
         _locView = ComputeProgram.GetUniformLocation(_program, "viewMat");
         _locProj = ComputeProgram.GetUniformLocation(_program, "projMat");
         _locEnableSoftGlow = ComputeProgram.GetUniformLocation(_program, "enableSoftGlow");
-        _locGlowPass = ComputeProgram.GetUniformLocation(_program, "glowPass");
-        _locGlowStrength = ComputeProgram.GetUniformLocation(_program, "glowStrength");
 
         _vao = Rlgl.LoadVertexArray();
         _ready = true;
@@ -51,23 +47,16 @@ public sealed unsafe class ParticleRenderPipeline : IDisposable
             Rlgl.SetUniformMatrix(_locProj, projection);
 
         ComputeProgram.SetUniformInt(_locEnableSoftGlow, visuals.SoftGlow ? 1 : 0);
-        ComputeProgram.SetUniformFloat(_locGlowStrength, visuals.GlowStrength);
 
         Rlgl.BindShaderBuffer(drawSsbo, 1);
         Rlgl.EnableVertexArray(_vao);
 
         ComputeProgram.EnableProgramPointSize();
         Rlgl.EnableColorBlend();
+        // beltoforion: glBlendFunc(GL_SRC_ALPHA, GL_ONE) + GL_FUNC_ADD
         Rlgl.SetBlendFactors(Rlgl.SRC_ALPHA, Rlgl.ONE, Rlgl.FUNC_ADD);
 
-        if (visuals.SoftGlow)
-        {
-            // Wide bloom halo first, then brighter cores on top.
-            ComputeProgram.SetUniformInt(_locGlowPass, 1);
-            ComputeProgram.DrawPoints(0, particleCount);
-        }
-
-        ComputeProgram.SetUniformInt(_locGlowPass, 0);
+        // Single pass: dust nebula comes from large low-alpha additive sprites overlapping.
         ComputeProgram.DrawPoints(0, particleCount);
 
         Rlgl.SetBlendMode(BlendMode.Alpha);

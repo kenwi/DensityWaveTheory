@@ -41,11 +41,11 @@ If compute shaders are unavailable, the app falls back to a CPU star preview and
 | `+` / `-` | Simulation speed |
 | `0` | Reset speed |
 | RMB / MMB | Pan |
-| Wheel | Zoom |
+| Wheel / `Z` / `X` / PgUp / PgDn | Zoom in / out (hold keys for continuous zoom) |
 | `1`-`4` | Toggle stars / dust / filaments / H2 |
-| `G` | Toggle radial color palette (warm core / cool rim) |
-| `B` | Toggle soft glow (wide bloom halo + soft cores) |
-| `[` / `]` | Decrease / increase glow strength |
+| `G` | Toggle optional radial palette wash (off by default; blackbody dust drives color) |
+| `B` | Toggle dust nebula glow (large soft dust sprites; stars stay sharp) |
+| `[` / `]` | Scale dust glow size |
 | `F2` / `D` | Density-wave overlay |
 | `F3` | Toggle dark-matter rotation curve |
 | `F5` | Full Sb preset (~200k+ particles) |

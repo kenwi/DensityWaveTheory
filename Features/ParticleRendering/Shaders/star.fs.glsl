@@ -5,7 +5,6 @@ flat in int vertexType;
 out vec4 FragColor;
 
 uniform int enableSoftGlow;
-uniform int glowPass;
 
 void main()
 {
@@ -15,42 +14,27 @@ void main()
         discard;
 
     float alpha;
-    if (enableSoftGlow != 0) {
-        bool dust = (vertexType == 1 || vertexType == 2);
-        // Halo pass: very wide Gaussian. Core pass: tight bright core + soft skirt.
-        float sigma = glowPass == 1
-            ? (dust ? 0.85 : 0.70)
-            : (dust ? 0.60 : 0.38);
-        float g = exp(-(dist * dist) / (2.0 * sigma * sigma));
 
-        if (glowPass == 1) {
-            if (vertexType == 0)
-                alpha = 0.55 * g;
-            else if (vertexType == 1)
-                alpha = 0.22 * g;
-            else if (vertexType == 2)
-                alpha = 0.26 * g;
-            else
-                alpha = 0.50 * g;
+    if (vertexType == 0) {
+        // Tight star cores.
+        alpha = max(1.0 - dist, 0.0);
+        alpha *= alpha;
+    } else if (vertexType == 1) {
+        if (enableSoftGlow != 0) {
+            float g = exp(-dist * dist * 1.8);
+            alpha = 0.10 * g;
         } else {
-            if (vertexType == 0)
-                alpha = g;
-            else if (vertexType == 1)
-                alpha = 0.16 * g;
-            else if (vertexType == 2)
-                alpha = 0.18 * g;
-            else
-                alpha = g;
+            alpha = 0.07 * (1.0 - dist);
+        }
+    } else if (vertexType == 2) {
+        if (enableSoftGlow != 0) {
+            float g = exp(-dist * dist * 1.6);
+            alpha = 0.12 * g;
+        } else {
+            alpha = 0.09 * (1.0 - dist);
         }
     } else {
-        if (vertexType == 0)
-            alpha = 1.0 - dist;
-        else if (vertexType == 1)
-            alpha = 0.05 * (1.0 - dist);
-        else if (vertexType == 2)
-            alpha = 0.07 * (1.0 - dist);
-        else
-            alpha = 1.0 - dist;
+        alpha = 1.0 - dist;
     }
 
     FragColor = vec4(vertexColor.rgb, alpha * vertexColor.a);
