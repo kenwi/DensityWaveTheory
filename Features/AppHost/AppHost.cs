@@ -153,7 +153,8 @@ public sealed class AppHost : IDisposable
                 : new Color(0, 0, 20, 255));
 
             Raylib.BeginMode2D(_camera.Camera);
-            _starfield.Draw(_camera.Camera.Zoom);
+            if (_hud.StarfieldVisible)
+                _starfield.Draw(_camera.Camera.Zoom, _hud.StarfieldBloom);
             if (_gpuReady)
             {
                 var view = Rlgl.GetMatrixModelview();

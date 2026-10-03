@@ -24,6 +24,8 @@ public sealed class Hud
     public VisualEffects Visuals { get; } = new();
     public bool ShowOverlay { get; set; } = true;
     public bool ShowHelp { get; private set; }
+    public bool StarfieldVisible { get; private set; } = true;
+    public bool StarfieldBloom { get; private set; } = true;
 
     private double _nextTimeRefresh;
     private float _displayedTimeMyr;
@@ -46,6 +48,10 @@ public sealed class Hud
             Toggle(DisplayFeatures.H2);
         if (Raylib.IsKeyPressed(KeyboardKey.Five))
             Toggle(DisplayFeatures.DustLanes);
+        if (Raylib.IsKeyPressed(KeyboardKey.Six))
+            StarfieldVisible = !StarfieldVisible;
+        if (Raylib.IsKeyPressed(KeyboardKey.Seven))
+            StarfieldBloom = !StarfieldBloom;
         if (Raylib.IsKeyPressed(KeyboardKey.G))
             Visuals.RadialPalette = !Visuals.RadialPalette;
         if (Raylib.IsKeyPressed(KeyboardKey.B))
@@ -111,6 +117,7 @@ public sealed class Hud
         Line($"incl {p.InclinationDeg:0}°  rot {p.ViewRotationDeg:0}°  photo {(p.PhotoLook ? "on" : "off")}");
         Line($"dark matter {(darkMatter ? "on" : "off")}  waves {(wavesVisible ? "on" : "off")}  scale {(axisVisible ? "on" : "off")}");
         Line($"palette {(Visuals.RadialPalette ? "on" : "off")}  soft glow {(Visuals.SoftGlow ? "on" : "off")} x{Visuals.GlowStrength:0.00}");
+        Line($"field stars {(StarfieldVisible ? "on" : "off")}  star bloom {(StarfieldBloom ? "on" : "off")}");
         Line($"features: {Features}");
 
         if (!ShowHelp)
@@ -120,6 +127,7 @@ public sealed class Hud
         Line("Space pause  +/- speed  0 reset speed  R recenter");
         Line("RMB/MMB pan  wheel/Z/X/PgUp/PgDn zoom");
         Line("1-5 stars/dust/filaments/H2/dust-lanes");
+        Line("6 field stars  7 star bloom");
         Line("G palette  B soft glow  [/] glow  I incline");
         Line("F2 waves  F4/A scale  F5 Sb  F6 face-on  F7 M81  H hud");
     }

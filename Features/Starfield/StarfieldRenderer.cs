@@ -59,7 +59,7 @@ public sealed class StarfieldRenderer
         _stars = stars;
     }
 
-    public void Draw(float cameraZoom)
+    public void Draw(float cameraZoom, bool bloom = true)
     {
         if (_stars.Length == 0)
             return;
@@ -71,13 +71,30 @@ public sealed class StarfieldRenderer
         {
             // Keep approximate screen-pixel size across zoom.
             var r = Math.Max(s.PixelSize / zoom, 0.35f / zoom);
+
+            if (bloom)
+            {
+                // Soft bloom: wide outer wash, mid glow, inner glow, then tight core.
+                if (s.Spike)
+                {
+                    DrawHalo(s.Pos, r * 14.0f, s.Color, 14);
+                    DrawHalo(s.Pos, r * 8.0f, s.Color, 28);
+                    DrawHalo(s.Pos, r * 4.0f, s.Color, 55);
+                }
+                else
+                {
+                    DrawHalo(s.Pos, r * 8.5f, s.Color, 16);
+                    DrawHalo(s.Pos, r * 4.2f, s.Color, 36);
+                }
+            }
+
             Raylib.DrawCircleV(s.Pos, r, s.Color);
 
             if (!s.Spike)
                 continue;
 
             var arm = r * 4.0f;
-            var tip = new Color(s.Color.R, s.Color.G, s.Color.B, (byte)70);
+            var tip = new Color(s.Color.R, s.Color.G, s.Color.B, (byte)55);
             Raylib.DrawLineEx(
                 new Vector2(s.Pos.X - arm, s.Pos.Y),
                 new Vector2(s.Pos.X + arm, s.Pos.Y),
@@ -91,5 +108,10 @@ public sealed class StarfieldRenderer
         }
 
         ComputeProgram.SetAlphaBlend();
+    }
+
+    private static void DrawHalo(Vector2 pos, float radius, Color color, byte alpha)
+    {
+        Raylib.DrawCircleV(pos, radius, new Color(color.R, color.G, color.B, alpha));
     }
 }
