@@ -27,4 +27,10 @@ public static class Constants
     public const int GlPoints = 0x0000;
     public const int GlShaderStorageBarrierBit = 0x00002000;
     public const int GlProgramPointSize = 0x8642;
+    public const int GlPointSprite = 0x8861;
+    public const int GlBlend = 0x0BE2;
+    public const int GlFuncAdd = 0x8006;
+    public const int GlSrcAlpha = 0x0302;
+    public const int GlOne = 1;
+    public const int GlOneMinusSrcAlpha = 0x0303;
 }

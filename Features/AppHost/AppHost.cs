@@ -9,26 +9,62 @@ namespace DensityWaveTheory.Features.AppHost;
 
 public sealed class AppHost : IDisposable
 {
-    private const int ScreenWidth = 1280;
-    private const int ScreenHeight = 800;
-
     private readonly GalaxyGenerator _generator = new();
-    private readonly Camera2DController _camera = new(ScreenWidth, ScreenHeight);
+    private readonly Camera2DController _camera;
     private readonly OrbitSimulationPipeline _orbits = new();
     private readonly ParticleRenderPipeline _renderer = new();
     private readonly DensityWaveOverlay _waves = new();
+    private readonly AxisOverlay _axis = new();
     private readonly Hud _hud = new();
 
-    private GalaxyParams _params = Presets.SpiralSbLite();
+    private GalaxyParams _params = Presets.ReferenceGalaxy1();
     private Star[] _stars = [];
     private float _timeYears;
     private bool _gpuReady;
 
+    private string? _screenshotPath;
+    private float _screenshotAfterSec;
+    private float _freezeAtYears = 2_400_000f;
+    private float _elapsedSec;
+    private bool _screenshotTaken;
+
+    public AppHost(string[]? args = null)
+    {
+        _camera = new Camera2DController(1920, 1200, _params.FieldOfView);
+        ParseArgs(args ?? []);
+    }
+
+    private void ParseArgs(string[] args)
+    {
+        for (var i = 0; i < args.Length; i++)
+        {
+            if (args[i] == "--screenshot" && i + 1 < args.Length)
+                _screenshotPath = args[++i];
+            else if (args[i] == "--after" && i + 1 < args.Length)
+                _screenshotAfterSec = float.Parse(args[++i]);
+            else if (args[i] == "--freeze" && i + 1 < args.Length)
+                _freezeAtYears = float.Parse(args[++i]);
+            else if (args[i] == "--hud")
+                _hud.ShowOverlay = true;
+            else if (args[i] == "--no-axis")
+                _axis.Visible = false;
+        }
+
+        if (_screenshotPath is not null && _screenshotAfterSec <= 0f)
+            _screenshotAfterSec = 2.5f;
+    }
+
     public void Run()
     {
-        Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.VSyncHint);
-        Raylib.InitWindow(ScreenWidth, ScreenHeight, "Density Wave Theory - Spiral Galaxy");
+        Raylib.SetConfigFlags(
+            ConfigFlags.FullscreenMode |
+            ConfigFlags.VSyncHint);
+        Raylib.InitWindow(0, 0, "Density Wave Theory - Spiral Galaxy");
         Raylib.SetTargetFPS(60);
+
+        var w = Raylib.GetScreenWidth();
+        var h = Raylib.GetScreenHeight();
+        _camera.SetFieldOfView(_params.FieldOfView, w, h);
 
         try
         {
@@ -44,9 +80,15 @@ public sealed class AppHost : IDisposable
         }
 
         RebuildGalaxy();
+        // Start near a phase that shows clear arms + H2 ignition.
+        _timeYears = _freezeAtYears;
+        _camera.SetPaused(_screenshotPath is not null);
+        Console.WriteLine($"GPU={_gpuReady} particles={_stars.Length} fov={_camera.FieldOfView:0} dust={_params.DustRenderSize}");
 
         while (!Raylib.WindowShouldClose())
         {
+            _elapsedSec += Raylib.GetFrameTime();
+
             if (Raylib.IsWindowResized())
                 _camera.HandleResize(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
 
@@ -58,15 +100,15 @@ public sealed class AppHost : IDisposable
                 _timeYears += Raylib.GetFrameTime() * 200_000f * _camera.SimSpeed;
 
             if (_gpuReady)
-                _orbits.Dispatch(_params, _timeYears, (int)_hud.Features, _hud.Visuals);
+                _orbits.Dispatch(_params, _timeYears, (int)_hud.Features, _hud.Visuals, sizeFactor: 1f);
 
             Raylib.BeginDrawing();
-            Raylib.ClearBackground(new Color(2, 2, 8, 255));
+            // Reference: glClearColor(0, 0, 0.08, 0)
+            Raylib.ClearBackground(new Color(0, 0, 20, 255));
 
             Raylib.BeginMode2D(_camera.Camera);
             if (_gpuReady)
             {
-                // Use the matrices Mode2D just installed so world units match overlays.
                 var view = Rlgl.GetMatrixModelview();
                 var proj = Rlgl.GetMatrixProjection();
                 _renderer.Draw(_orbits.DrawSsbo, _orbits.ParticleCount, view, proj, _hud.Visuals);
@@ -76,9 +118,11 @@ public sealed class AppHost : IDisposable
                 DrawCpuFallback();
             }
 
+            _axis.DrawWorld(_camera.FieldOfView);
             _waves.Draw(_params, _params.PertN, _params.PertAmp);
             Raylib.EndMode2D();
 
+            _axis.DrawLabels(_camera.Camera, _camera.FieldOfView);
             _hud.Draw(
                 _params,
                 _stars.Length,
@@ -86,7 +130,9 @@ public sealed class AppHost : IDisposable
                 _camera.SimSpeed,
                 _camera.Paused,
                 _waves.Visible,
-                _params.HasDarkMatter);
+                _axis.Visible,
+                _params.HasDarkMatter,
+                _camera.FieldOfView);
 
             if (!_gpuReady)
             {
@@ -99,6 +145,14 @@ public sealed class AppHost : IDisposable
             }
 
             Raylib.EndDrawing();
+
+            if (_screenshotPath is not null && !_screenshotTaken && _elapsedSec >= _screenshotAfterSec)
+            {
+                Raylib.TakeScreenshot(_screenshotPath);
+                _screenshotTaken = true;
+                Console.WriteLine($"Wrote screenshot {_screenshotPath}");
+                break;
+            }
         }
 
         Raylib.CloseWindow();
@@ -108,6 +162,9 @@ public sealed class AppHost : IDisposable
     {
         if (Raylib.IsKeyPressed(KeyboardKey.F2) || Raylib.IsKeyPressed(KeyboardKey.D))
             _waves.Visible = !_waves.Visible;
+
+        if (Raylib.IsKeyPressed(KeyboardKey.F4) || Raylib.IsKeyPressed(KeyboardKey.A))
+            _axis.Visible = !_axis.Visible;
 
         if (Raylib.IsKeyPressed(KeyboardKey.F3))
         {
@@ -119,19 +176,24 @@ public sealed class AppHost : IDisposable
         {
             _params = Presets.SpiralSb();
             RebuildGalaxy();
+            _camera.SetFieldOfView(_params.FieldOfView, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
         }
 
         if (Raylib.IsKeyPressed(KeyboardKey.F6))
         {
-            _params = Presets.SpiralSbLite();
+            _params = Presets.ReferenceGalaxy1();
             RebuildGalaxy();
+            _camera.SetFieldOfView(_params.FieldOfView, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
         }
+
+        if (Raylib.IsKeyPressed(KeyboardKey.F11))
+            Raylib.ToggleFullscreen();
     }
 
     private void RebuildGalaxy()
     {
         _stars = _generator.Generate(_params);
-        _timeYears = 0f;
+        _timeYears = _freezeAtYears > 0 ? _freezeAtYears : 0f;
         if (_gpuReady)
             _orbits.UploadStars(_stars);
     }

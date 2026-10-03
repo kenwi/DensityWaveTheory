@@ -52,14 +52,13 @@ public sealed unsafe class ParticleRenderPipeline : IDisposable
         Rlgl.EnableVertexArray(_vao);
 
         ComputeProgram.EnableProgramPointSize();
-        Rlgl.EnableColorBlend();
-        // beltoforion: glBlendFunc(GL_SRC_ALPHA, GL_ONE) + GL_FUNC_ADD
-        Rlgl.SetBlendFactors(Rlgl.SRC_ALPHA, Rlgl.ONE, Rlgl.FUNC_ADD);
+        // beltoforion: glBlendFunc(GL_SRC_ALPHA, GL_ONE) + GL_FUNC_ADD via raw GL
+        // so we do not depend on Raylib's BlendMode.Custom bookkeeping.
+        ComputeProgram.SetAdditiveBlend();
 
-        // Single pass: dust nebula comes from large low-alpha additive sprites overlapping.
         ComputeProgram.DrawPoints(0, particleCount);
 
-        Rlgl.SetBlendMode(BlendMode.Alpha);
+        ComputeProgram.SetAlphaBlend();
         ComputeProgram.DisableProgramPointSize();
         Rlgl.DisableShader();
     }

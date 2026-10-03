@@ -15,8 +15,10 @@ public sealed class GalaxyParams
     public float PertAmp { get; set; } = 40f;
     public float DustRenderSize { get; set; } = 70f;
     public float BaseTemp { get; set; } = 4000f;
-    public float H2SizeMax { get; set; } = 50f;
-    public float H2Threshold { get; set; } = 0.55f;
+    public float H2SizeMax { get; set; } = 100f;
+    public float H2Threshold { get; set; } = 1.2f;
+    /// <summary>World-space horizontal field of view used to set camera zoom.</summary>
+    public float FieldOfView { get; set; } = 33960f;
     public uint Seed { get; set; } = 42;
 
     public float RadFarField => RadGalaxy * 2f;

@@ -33,9 +33,10 @@ public struct Star
     public void SetColorFromTemperature()
     {
         var c = BlackbodyColor.FromTemperature(Temp);
-        ColorR = MathF.Max(c.X, 0f);
-        ColorG = MathF.Max(c.Y, 0f);
-        ColorB = MathF.Max(c.Z, 0f);
+        // Pass LUT through unmodified (reference allows slight negatives on cool temps).
+        ColorR = c.X;
+        ColorG = c.Y;
+        ColorB = c.Z;
         ColorA = 1f;
     }
 }

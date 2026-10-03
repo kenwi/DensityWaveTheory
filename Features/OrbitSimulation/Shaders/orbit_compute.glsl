@@ -92,36 +92,11 @@ vec3 radialPalette(float r) {
     float t = clamp(r / max(radGalaxy, 1.0), 0.0, 1.5);
     vec3 core = vec3(1.00, 0.72, 0.35);
     vec3 mid  = vec3(1.00, 0.55, 0.42);
-    vec3 outer = vec3(0.45, 0.65, 1.00);
-    vec3 halo = vec3(0.55, 0.45, 0.95);
-
-    if (t < 0.35)
-        return mix(core, mid, t / 0.35);
-    if (t < 1.0)
-        return mix(mid, outer, (t - 0.35) / 0.65);
+    vec3 outer = vec3(0.45, 0.70, 1.10);
+    vec3 halo = vec3(0.55, 0.45, 1.00);
+    if (t < 0.35) return mix(core, mid, t / 0.35);
+    if (t < 1.0) return mix(mid, outer, (t - 0.35) / 0.65);
     return mix(outer, halo, clamp((t - 1.0) / 0.5, 0.0, 1.0));
-}
-
-// Beltoforion-like dust: warm near core, strong blue in the outer disk.
-vec3 dustArmTint(vec3 blackbody, float r) {
-    float t = clamp(r / max(radGalaxy, 1.0), 0.0, 1.35);
-    vec3 warm = vec3(1.0, 0.70, 0.35);
-    vec3 blue = vec3(0.40, 0.62, 1.15);
-    vec3 violet = vec3(0.50, 0.45, 1.05);
-    vec3 ramp = (t < 0.4)
-        ? mix(warm, blue, t / 0.4)
-        : mix(blue, violet, clamp((t - 0.4) / 0.8, 0.0, 1.0));
-    // Keep some blackbody variation, but let the arm wash dominate.
-    return mix(blackbody, ramp, 0.72);
-}
-
-vec4 applyPalette(vec4 baseColor, float r, int type) {
-    if (enableRadialPalette == 0 || type == 3 || type == 4)
-        return baseColor;
-
-    float strength = paletteStrength * 0.5;
-    vec3 washed = mix(baseColor.rgb, radialPalette(r), strength);
-    return vec4(washed, baseColor.a);
 }
 
 void main() {
@@ -132,37 +107,41 @@ void main() {
     Star s = stars[id];
     vec2 ps = calcPos(s.a, s.b, s.theta0, s.velTheta, time, s.tiltAngle);
 
+    vec4 color = vec4(s.colorR, s.colorG, s.colorB, s.colorA);
+    // Cool bias on dust/filaments so mid/outer arms read blue-violet like the article.
+    if (s.type == 1 || s.type == 2) {
+        float t = clamp(s.a / max(radGalaxy, 1.0), 0.0, 1.5);
+        float w = smoothstep(0.12, 0.95, t);
+        color.r *= mix(1.0, 0.70, w);
+        color.g *= mix(1.0, 0.90, w);
+        color.b *= mix(1.05, 1.32, w);
+    }
+    if (enableRadialPalette != 0 && s.type != 3 && s.type != 4) {
+        float strength = paletteStrength * ((s.type == 1 || s.type == 2) ? 0.35 : 0.2);
+        color.rgb = mix(color.rgb, radialPalette(s.a), strength);
+    }
+
     float pointSize = 1.0;
-    vec3 bb = vec3(s.colorR, s.colorG, s.colorB);
+    vec4 vertexColor = color * s.mag;
     int type = s.type;
 
-    if (type == 1 || type == 2)
-        bb = dustArmTint(bb, s.a);
-
-    vec4 baseColor = applyPalette(vec4(bb, s.colorA), s.a, type);
-    vec4 vertexColor = baseColor * s.mag;
-
+    // Exact size rules from VertexBufferStars.hpp
     float dustPx = float(dustSize);
     if (enableSoftGlow != 0)
         dustPx *= max(glowStrength, 0.5);
 
     if (type == 0) {
-        // Quiet stars so dust nebula can dominate.
-        pointSize = s.mag * 2.8;
-        vertexColor = baseColor * s.mag * 0.45;
-        if ((displayFeatures & 1) == 0)
-            pointSize = 0.0;
+        pointSize = s.mag * 4.0;
+        vertexColor = color * s.mag;
+        if ((displayFeatures & 1) == 0) pointSize = 0.0;
     } else if (type == 1) {
         pointSize = s.mag * 5.0 * dustPx;
-        // Lift floor so low-mag dust still stacks into a visible veil.
-        vertexColor = baseColor * max(s.mag * 2.8, 0.22);
-        if ((displayFeatures & 2) == 0)
-            pointSize = 0.0;
+        vertexColor = color * s.mag;
+        if ((displayFeatures & 2) == 0) pointSize = 0.0;
     } else if (type == 2) {
         pointSize = s.mag * 2.0 * dustPx;
-        vertexColor = baseColor * max(s.mag * 2.4, 0.18);
-        if ((displayFeatures & 4) == 0)
-            pointSize = 0.0;
+        vertexColor = color * s.mag;
+        if ((displayFeatures & 4) == 0) pointSize = 0.0;
     } else if (type == 3 || type == 4) {
         float delta = 1000.0;
         float aI = max(s.a - delta, 0.0);
@@ -174,17 +153,15 @@ void main() {
         vec2 psI = calcPos(aI, aI * excentricity(aI), s.theta0 - (tA - tI) / DEG_TO_RAD, s.velTheta, time, tI);
         vec2 psO = calcPos(aO, aO * excentricity(aO), s.theta0 + (tO - tA) / DEG_TO_RAD, s.velTheta, time, tO);
         float rho = 0.5 * (dI / max(distance(ps, psI), 1.0) + delta / max(distance(ps, psO), 1.0));
-        float ignite = smoothstep(h2Threshold, 1.35 * h2Threshold, rho);
-
-        if ((displayFeatures & 8) == 0)
-            ignite = 0.0;
+        float ignite = smoothstep(h2Threshold, 1.5 * h2Threshold, rho);
+        if ((displayFeatures & 8) == 0) ignite = 0.0;
 
         if (type == 3) {
             pointSize = h2SizeMax * ignite;
-            vertexColor = vec4(1.0, 0.35, 0.55, 1.0) * s.mag * 2.2 * ignite;
+            vertexColor = color * s.mag * vec4(2.0, 0.5, 0.5, 1.0) * ignite;
         } else {
-            pointSize = h2SizeMax * ignite / 8.0;
-            vertexColor = vec4(1.0, 0.85, 0.9, 1.0) * ignite;
+            pointSize = h2SizeMax * ignite / 10.0;
+            vertexColor = vec4(1.0) * ignite;
         }
     }
 

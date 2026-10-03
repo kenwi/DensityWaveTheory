@@ -23,9 +23,9 @@ public sealed class GalaxyGenerator
         for (var i = 0; i < p.NumStars; i++)
         {
             var rad = (float)cdf.ValFromProb(Rnum());
-            var mag = 0.08f + 0.28f * Rnum();
-            if (i < p.NumStars / 80)
-                mag = MathF.Min(mag + 0.08f + Rnum() * 0.25f, 0.85f);
+            var mag = 0.1f + 0.4f * Rnum();
+            if (i < p.NumStars / 60)
+                mag = MathF.Min(mag + 0.1f + Rnum() * 0.4f, 1f);
 
             var star = new Star
             {
@@ -64,7 +64,7 @@ public sealed class GalaxyGenerator
                 Theta0 = 360f * Rnum(),
                 VelTheta = OrbitMath.GetOrbitalVelocity(p, (rad + rad * OrbitMath.GetExcentricity(p, rad)) / 2f),
                 Temp = p.BaseTemp + rad / 4.5f,
-                Mag = 0.05f + 0.18f * Rnum(),
+                Mag = 0.02f + 0.15f * Rnum(),
                 Type = (int)ParticleType.Dust,
             };
             dust.SetColorFromTemperature();
@@ -92,7 +92,7 @@ public sealed class GalaxyGenerator
                     Theta0 = theta + 10f - 20f * Rnum(),
                     VelTheta = OrbitMath.GetOrbitalVelocity(p, (rad + rad * OrbitMath.GetExcentricity(p, rad)) / 2f),
                     Temp = p.BaseTemp + rad / 4.5f - 1000f,
-                    Mag = mag + 0.04f * Rnum(),
+                    Mag = mag + 0.025f * Rnum(),
                     Type = (int)ParticleType.Filament,
                 };
                 filament.SetColorFromTemperature();

@@ -27,9 +27,19 @@ The `.csproj` copies `native/raylib-gl43/` into the RID native folder after ever
 
 ## Run
 
+Starts **fullscreen** by default (FOV-matched camera, axis overlay on, HUD off):
+
 ```bash
-dotnet run
+dotnet run -c Release
 ```
+
+Capture a frame (relative path; Raylib prepends the working directory):
+
+```bash
+dotnet run -c Release -- --screenshot screenshots/out.png --after 2 --freeze 2400000
+```
+
+Optional flags: `--hud`, `--no-axis`, `--freeze <years>`, `--after <seconds>`.
 
 If compute shaders are unavailable, the app falls back to a CPU star preview and prints build instructions.
 
@@ -40,17 +50,20 @@ If compute shaders are unavailable, the app falls back to a CPU star preview and
 | Space | Pause |
 | `+` / `-` | Simulation speed |
 | `0` | Reset speed |
+| `R` | Recenter |
 | RMB / MMB | Pan |
-| Wheel / `Z` / `X` / PgUp / PgDn | Zoom in / out (hold keys for continuous zoom) |
+| Wheel / `Z` / `X` / PgUp / PgDn | Zoom (adjusts FOV) |
 | `1`-`4` | Toggle stars / dust / filaments / H2 |
-| `G` | Toggle optional radial palette wash (off by default; blackbody dust drives color) |
-| `B` | Toggle dust nebula glow (large soft dust sprites; stars stay sharp) |
+| `G` | Toggle optional radial palette wash |
+| `B` | Toggle soft Gaussian dust glow |
 | `[` / `]` | Scale dust glow size |
+| `A` / `F4` | Toggle scale lines (axis + ticks + labels) |
 | `F2` / `D` | Density-wave overlay |
 | `F3` | Toggle dark-matter rotation curve |
 | `F5` | Full Sb preset (~200k+ particles) |
-| `F6` | Lite preset |
-| `H` | Toggle help |
+| `F6` | Galaxy 1 / article-look preset |
+| `F11` | Toggle fullscreen |
+| `H` | Cycle HUD / help |
 
 ## Architecture
 

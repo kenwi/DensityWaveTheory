@@ -136,6 +136,19 @@ public static unsafe class ComputeProgram
         GlNative.Disable(Constants.GlProgramPointSize);
     }
 
+    public static void SetAdditiveBlend()
+    {
+        GlNative.Enable(Constants.GlBlend);
+        GlNative.BlendEquation(Constants.GlFuncAdd);
+        GlNative.BlendFunc(Constants.GlSrcAlpha, Constants.GlOne);
+    }
+
+    public static void SetAlphaBlend()
+    {
+        GlNative.BlendEquation(Constants.GlFuncAdd);
+        GlNative.BlendFunc(Constants.GlSrcAlpha, Constants.GlOneMinusSrcAlpha);
+    }
+
     /// <summary>
     /// rlDrawVertexArray hardcodes GL_TRIANGLES; particles need GL_POINTS.
     /// </summary>
@@ -164,4 +177,12 @@ internal static partial class GlNative
     [LibraryImport(Lib, EntryPoint = "glDrawArrays")]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     public static partial void DrawArrays(int mode, int first, int count);
+
+    [LibraryImport(Lib, EntryPoint = "glBlendFunc")]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    public static partial void BlendFunc(int sfactor, int dfactor);
+
+    [LibraryImport(Lib, EntryPoint = "glBlendEquation")]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    public static partial void BlendEquation(int mode);
 }
