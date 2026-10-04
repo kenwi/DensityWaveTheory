@@ -125,7 +125,7 @@ public sealed class Hud
 
         y += 10;
         Line("Space pause  +/- speed  0 reset speed  R recenter");
-        Line("RMB/MMB pan  wheel/Z/X/PgUp/PgDn zoom");
+        Line("arrows/RMB/MMB pan  wheel/Z/X/PgUp/PgDn zoom");
         Line("1-5 stars/dust/filaments/H2/dust-lanes");
         Line("6 field stars  7 star bloom");
         Line("G palette  B soft glow  [/] glow  I incline");

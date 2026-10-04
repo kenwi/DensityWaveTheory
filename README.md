@@ -59,7 +59,7 @@ If compute shaders are unavailable, the app falls back to a CPU star preview and
 | `+` / `-` | Simulation speed |
 | `0` | Reset speed |
 | `R` | Recenter |
-| RMB / MMB | Pan |
+| Arrows / RMB / MMB | Pan (arrow speed scales with zoom) |
 | Wheel / `Z` / `X` / PgUp / PgDn | Zoom (adjusts FOV) |
 | `1`-`4` | Toggle stars / dust / filaments / H2 |
 | `G` | Toggle optional radial palette wash |
