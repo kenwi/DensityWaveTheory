@@ -1,4 +1,5 @@
 using DensityWaveTheory.Features.GalaxyPopulation;
+using DensityWaveTheory.Features.StarSystem;
 using DensityWaveTheory.Shared;
 using Raylib_cs;
 
@@ -90,7 +91,10 @@ public sealed class Hud
         bool wavesVisible,
         bool axisVisible,
         bool darkMatter,
-        float fieldOfView)
+        float fieldOfView,
+        PlanetarySystem? starSystem = null,
+        int starSystemCount = 0,
+        long planetCount = 0)
     {
         if (!ShowOverlay)
             return;
@@ -110,8 +114,30 @@ public sealed class Hud
             y += 20;
         }
 
-        Line($"FPS {fps}  particles {particleCount:N0}");
+        if (starSystem is not null)
+        {
+            var star = starSystem.Star;
+            var hz = starSystem.HabitableZone;
+            Line($"FPS {fps}  mode SYSTEM");
+            Line($"star #{starSystem.SourceStarIndex}  {star.SpectralClass}  T={star.TempKelvin:0} K");
+            Line($"M={star.MassSolar:0.00} Msun  L={star.LuminositySolar:0.00} Lsun  R={star.RadiusSolar:0.00} Rsun");
+            Line($"planets {starSystem.Planets.Count}  (galaxy {planetCount:N0})  HZ {hz.InnerAu:0.00}-{hz.OuterAu:0.00} AU");
+            Line($"systems {starSystemCount:N0}  speed x{simSpeed:0.##}{(paused ? "  PAUSED" : "")}  seed {starSystem.Seed}");
+
+            if (!ShowHelp)
+                return;
+
+            y += 10;
+            Line("Esc return to galaxy  F8 random system screenshot");
+            Line("Space pause  +/- speed  0 reset speed  R recenter");
+            Line("RMB/MMB pan  wheel/Z/X/PgUp/PgDn zoom");
+            Line("H hud");
+            return;
+        }
+
+        Line($"FPS {fps}  particles {particleCount:N0}  mode GALAXY");
         Line($"t = {_displayedTimeMyr:F2} Myr   speed x{simSpeed:0.##}{(paused ? "  PAUSED" : "")}");
+        Line($"star systems {starSystemCount:N0}  planets {planetCount:N0}");
         Line($"core {p.RadCore:0}  disk {p.RadGalaxy:0}  offset {p.AngleOffset:0.####}");
         Line($"fov {fieldOfView:0}  dust {p.DustRenderSize:0}  temp {p.BaseTemp:0}");
         Line($"incl {p.InclinationDeg:0}°  rot {p.ViewRotationDeg:0}°  photo {(p.PhotoLook ? "on" : "off")}");
@@ -124,6 +150,8 @@ public sealed class Hud
             return;
 
         y += 10;
+        Line("LMB click star to enter system  Esc exits system");
+        Line("F8 random system + screenshot (opens viewer)");
         Line("Space pause  +/- speed  0 reset speed  R recenter");
         Line("RMB/MMB pan  wheel/Z/X/PgUp/PgDn zoom");
         Line("1-5 stars/dust/filaments/H2/dust-lanes");

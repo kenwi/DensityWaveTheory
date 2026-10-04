@@ -86,4 +86,29 @@ public sealed class Camera2DController
     }
 
     public void SetPaused(bool paused) => Paused = paused;
+
+    public void SetSimSpeed(float speed) => SimSpeed = Math.Clamp(speed, 0.05f, 64f);
+
+    public void MultiplySimSpeed(float factor)
+    {
+        if (factor > 1f)
+            SimSpeed = MathF.Min(SimSpeed * factor, 64f);
+        else if (factor > 0f)
+            SimSpeed = MathF.Max(SimSpeed * factor, 0.05f);
+    }
+
+    public void UpdateSimControlsOnly()
+    {
+        if (Raylib.IsKeyPressed(KeyboardKey.Space))
+            Paused = !Paused;
+
+        if (Raylib.IsKeyPressed(KeyboardKey.Equal) || Raylib.IsKeyPressed(KeyboardKey.KpAdd))
+            MultiplySimSpeed(1.5f);
+
+        if (Raylib.IsKeyPressed(KeyboardKey.Minus) || Raylib.IsKeyPressed(KeyboardKey.KpSubtract))
+            MultiplySimSpeed(1f / 1.5f);
+
+        if (Raylib.IsKeyPressed(KeyboardKey.Zero))
+            SimSpeed = 1f;
+    }
 }

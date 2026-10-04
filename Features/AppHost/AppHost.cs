@@ -4,9 +4,16 @@ using DensityWaveTheory.Features.GalaxyPopulation;
 using DensityWaveTheory.Features.OrbitSimulation;
 using DensityWaveTheory.Features.ParticleRendering;
 using DensityWaveTheory.Features.Starfield;
+using DensityWaveTheory.Features.StarSystem;
 using Raylib_cs;
 
 namespace DensityWaveTheory.Features.AppHost;
+
+public enum AppMode
+{
+    Galaxy,
+    StarSystem,
+}
 
 public sealed class AppHost : IDisposable
 {
@@ -18,11 +25,15 @@ public sealed class AppHost : IDisposable
     private readonly AxisOverlay _axis = new();
     private readonly Hud _hud = new();
     private readonly StarfieldRenderer _starfield = new();
+    private readonly StarSystemScene _starSystem = new();
 
     private GalaxyParams _params = Presets.ReferenceGalaxy1();
     private Star[] _stars = [];
     private float _timeYears;
     private bool _gpuReady;
+    private AppMode _mode = AppMode.Galaxy;
+    private int _starSystemCount;
+    private long _planetCount;
 
     private string? _screenshotPath;
     private float _screenshotAfterSec;
@@ -30,6 +41,13 @@ public sealed class AppHost : IDisposable
     private float? _cliFov;
     private float _elapsedSec;
     private bool _screenshotTaken;
+    private bool _randomSystemCli;
+    private bool _openScreenshot = true;
+    private bool _exitAfterScreenshot;
+    private string? _pendingCapturePath;
+    private float _pendingCaptureAt = -1f;
+    private bool _pendingCaptureRestoreHud;
+    private bool _hudBeforeCapture;
 
     public AppHost(string[]? args = null)
     {
@@ -45,6 +63,15 @@ public sealed class AppHost : IDisposable
         {
             if (args[i] == "--screenshot" && i + 1 < args.Length)
                 _screenshotPath = args[++i];
+            else if (args[i] == "--random-system")
+            {
+                _randomSystemCli = true;
+                _exitAfterScreenshot = true;
+                if (i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal))
+                    _screenshotPath = args[++i];
+                else
+                    _screenshotPath = SystemCapture.DefaultPath();
+            }
             else if (args[i] == "--after" && i + 1 < args.Length)
                 _screenshotAfterSec = float.Parse(args[++i]);
             else if (args[i] == "--freeze" && i + 1 < args.Length)
@@ -55,6 +82,8 @@ public sealed class AppHost : IDisposable
                 _hud.ShowOverlay = false;
             else if (args[i] == "--no-axis")
                 _axis.Visible = false;
+            else if (args[i] == "--no-open")
+                _openScreenshot = false;
             else if (args[i] == "--fov" && i + 1 < args.Length)
                 _cliFov = float.Parse(args[++i]);
             else if (args[i] == "--preset" && i + 1 < args.Length)
@@ -80,7 +109,7 @@ public sealed class AppHost : IDisposable
             _hud.ShowOverlay = false;
 
         if (_screenshotPath is not null && _screenshotAfterSec <= 0f)
-            _screenshotAfterSec = 2.5f;
+            _screenshotAfterSec = _randomSystemCli ? 0.75f : 2.5f;
     }
 
     public void Run()
@@ -114,36 +143,69 @@ public sealed class AppHost : IDisposable
         _camera.SetPaused(_screenshotPath is not null);
         Console.WriteLine($"GPU={_gpuReady} particles={_stars.Length} fov={_camera.FieldOfView:0} dust={_params.DustRenderSize}");
 
+        if (_randomSystemCli)
+        {
+            if (EnterRandomStarSystem(Random.Shared))
+            {
+                ScheduleSystemCapture(_screenshotPath!, openAfter: _openScreenshot, exitAfter: true);
+                Console.WriteLine($"Random star system capture -> {_screenshotPath}");
+            }
+            else
+            {
+                Console.Error.WriteLine("No stars available for --random-system.");
+                Raylib.CloseWindow();
+                return;
+            }
+        }
+
         while (!Raylib.WindowShouldClose())
         {
-            _elapsedSec += Raylib.GetFrameTime();
+            var dt = Raylib.GetFrameTime();
+            _elapsedSec += dt;
 
             if (Raylib.IsWindowResized())
-                _camera.HandleResize(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
+            {
+                var sw = Raylib.GetScreenWidth();
+                var sh = Raylib.GetScreenHeight();
+                _camera.HandleResize(sw, sh);
+                _starSystem.HandleResize(sw, sh);
+            }
 
-            _camera.Update();
+            if (_mode == AppMode.Galaxy)
+                _camera.Update();
+            else
+                _camera.UpdateSimControlsOnly();
+
             _hud.Update();
             HandleHotkeys();
+            HandleStarSystemInput();
 
-            if (!_camera.Paused)
-                _timeYears += Raylib.GetFrameTime() * 200_000f * _camera.SimSpeed;
-
-            if (_gpuReady)
+            if (_mode == AppMode.StarSystem)
             {
-                // Point sizes are in pixels; packing density scales with zoom^2.
-                // Scale size with zoom (clamped). Residual intensity uses a soft
-                // power - full ^2 over-brightens the saturated core when zoomed in.
-                var zoomRatio = _params.FieldOfView / Math.Max(_camera.FieldOfView, 1f);
-                var sizeFactor = Math.Clamp(zoomRatio, 0.4f, 3.25f);
-                var residual = zoomRatio / sizeFactor;
-                var brightnessFactor = Math.Clamp(MathF.Pow(residual, 1.25f), 0.25f, 6f);
-                _orbits.Dispatch(
-                    _params,
-                    _timeYears,
-                    (int)_hud.Features,
-                    _hud.Visuals,
-                    sizeFactor,
-                    brightnessFactor);
+                _starSystem.Update(dt, _camera.SimSpeed, _camera.Paused);
+            }
+            else
+            {
+                if (!_camera.Paused)
+                    _timeYears += dt * 200_000f * _camera.SimSpeed;
+
+                if (_gpuReady)
+                {
+                    // Point sizes are in pixels; packing density scales with zoom^2.
+                    // Scale size with zoom (clamped). Residual intensity uses a soft
+                    // power - full ^2 over-brightens the saturated core when zoomed in.
+                    var zoomRatio = _params.FieldOfView / Math.Max(_camera.FieldOfView, 1f);
+                    var sizeFactor = Math.Clamp(zoomRatio, 0.4f, 3.25f);
+                    var residual = zoomRatio / sizeFactor;
+                    var brightnessFactor = Math.Clamp(MathF.Pow(residual, 1.25f), 0.25f, 6f);
+                    _orbits.Dispatch(
+                        _params,
+                        _timeYears,
+                        (int)_hud.Features,
+                        _hud.Visuals,
+                        sizeFactor,
+                        brightnessFactor);
+                }
             }
 
             Raylib.BeginDrawing();
@@ -152,25 +214,33 @@ public sealed class AppHost : IDisposable
                 ? new Color(0, 0, 0, 255)
                 : new Color(0, 0, 20, 255));
 
-            Raylib.BeginMode2D(_camera.Camera);
-            if (_hud.StarfieldVisible)
-                _starfield.Draw(_camera.Camera.Zoom, _hud.StarfieldBloom);
-            if (_gpuReady)
+            if (_mode == AppMode.StarSystem)
             {
-                var view = Rlgl.GetMatrixModelview();
-                var proj = Rlgl.GetMatrixProjection();
-                _renderer.Draw(_orbits.DrawSsbo, _orbits.ParticleCount, view, proj, _hud.Visuals);
+                _starSystem.Draw(_hud.Visuals.SoftGlow);
             }
             else
             {
-                DrawCpuFallback();
+                Raylib.BeginMode2D(_camera.Camera);
+                if (_hud.StarfieldVisible)
+                    _starfield.Draw(_camera.Camera.Zoom, _hud.StarfieldBloom);
+                if (_gpuReady)
+                {
+                    var view = Rlgl.GetMatrixModelview();
+                    var proj = Rlgl.GetMatrixProjection();
+                    _renderer.Draw(_orbits.DrawSsbo, _orbits.ParticleCount, view, proj, _hud.Visuals);
+                }
+                else
+                {
+                    DrawCpuFallback();
+                }
+
+                _axis.DrawWorld(_camera.FieldOfView);
+                _waves.Draw(_params, _params.PertN, _params.PertAmp);
+                Raylib.EndMode2D();
+
+                _axis.DrawLabels(_camera.Camera, _camera.FieldOfView);
             }
 
-            _axis.DrawWorld(_camera.FieldOfView);
-            _waves.Draw(_params, _params.PertN, _params.PertAmp);
-            Raylib.EndMode2D();
-
-            _axis.DrawLabels(_camera.Camera, _camera.FieldOfView);
             _hud.Draw(
                 _params,
                 _stars.Length,
@@ -180,9 +250,12 @@ public sealed class AppHost : IDisposable
                 _waves.Visible,
                 _axis.Visible,
                 _params.HasDarkMatter,
-                _camera.FieldOfView);
+                _camera.FieldOfView,
+                _mode == AppMode.StarSystem ? _starSystem.System : null,
+                _starSystemCount,
+                _planetCount);
 
-            if (!_gpuReady)
+            if (!_gpuReady && _mode == AppMode.Galaxy)
             {
                 Raylib.DrawText(
                     "GPU compute unavailable - using CPU fallback. See native/build-raylib-gl43.sh",
@@ -194,7 +267,13 @@ public sealed class AppHost : IDisposable
 
             Raylib.EndDrawing();
 
-            if (_screenshotPath is not null && !_screenshotTaken && _elapsedSec >= _screenshotAfterSec)
+            if (TryFinishPendingCapture())
+                break;
+
+            if (!_randomSystemCli &&
+                _screenshotPath is not null &&
+                !_screenshotTaken &&
+                _elapsedSec >= _screenshotAfterSec)
             {
                 Raylib.TakeScreenshot(_screenshotPath);
                 _screenshotTaken = true;
@@ -208,6 +287,24 @@ public sealed class AppHost : IDisposable
 
     private void HandleHotkeys()
     {
+        if (Raylib.IsKeyPressed(KeyboardKey.F11))
+            Raylib.ToggleFullscreen();
+
+        // F8: jump to a random system, screenshot it, and open the image.
+        if (Raylib.IsKeyPressed(KeyboardKey.F8))
+        {
+            if (EnterRandomStarSystem(Random.Shared))
+            {
+                var path = SystemCapture.DefaultPath();
+                ScheduleSystemCapture(path, openAfter: true, exitAfter: false);
+                Console.WriteLine($"Capturing random star system -> {path}");
+            }
+        }
+
+        // Galaxy-only hotkeys while exploring a system would mutate culled state.
+        if (_mode != AppMode.Galaxy)
+            return;
+
         if (Raylib.IsKeyPressed(KeyboardKey.F2) || Raylib.IsKeyPressed(KeyboardKey.D))
             _waves.Visible = !_waves.Visible;
 
@@ -239,9 +336,119 @@ public sealed class AppHost : IDisposable
                 _ => 0f,
             };
         }
+    }
 
-        if (Raylib.IsKeyPressed(KeyboardKey.F11))
-            Raylib.ToggleFullscreen();
+    private void HandleStarSystemInput()
+    {
+        if (_mode == AppMode.StarSystem)
+        {
+            if (Raylib.IsKeyPressed(KeyboardKey.Escape) &&
+                _starSystem.TryExit(out var fov, out var target))
+            {
+                _mode = AppMode.Galaxy;
+                Raylib.SetExitKey(KeyboardKey.Escape);
+                _camera.SetFieldOfView(fov, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
+                var cam = _camera.Camera;
+                cam.Target = target;
+                _camera.Camera = cam;
+            }
+
+            return;
+        }
+
+        if (!Raylib.IsMouseButtonPressed(MouseButton.Left))
+            return;
+
+        var mouse = Raylib.GetMousePosition();
+        if (!StarPicker.TryPick(_stars, _params, _timeYears, _camera.Camera, mouse, out var picked))
+            return;
+
+        EnterStarSystem(picked);
+    }
+
+    private bool EnterRandomStarSystem(Random rng)
+    {
+        if (!StarPicker.TryPickRandom(_stars, _params, _timeYears, rng, out var picked))
+            return false;
+        EnterStarSystem(picked);
+        // Advance local clock so orbits aren't frozen at t=0 for captures.
+        _starSystem.SeekYears(1.8f + (float)rng.NextDouble() * 4f);
+        return true;
+    }
+
+    private void EnterStarSystem(PickedStar picked)
+    {
+        var seed = PlanetarySystemGenerator.MakeSeed(
+            _params.Seed, picked.Index, picked.A, picked.Theta0, picked.Temp);
+        var system = PlanetarySystemGenerator.Generate(seed, picked.Index, picked.Temp);
+
+        // If already in a system, keep the original galaxy camera restore target.
+        float galaxyFov;
+        System.Numerics.Vector2 galaxyTarget;
+        if (_mode == AppMode.StarSystem && _starSystem.Active)
+        {
+            // Peek saved restore values by exiting then re-entering would lose them;
+            // Enter overwrites saved FOV/target, so pass current saved via TryExit first.
+            _starSystem.TryExit(out galaxyFov, out galaxyTarget);
+        }
+        else
+        {
+            galaxyFov = _camera.FieldOfView;
+            galaxyTarget = _camera.Camera.Target;
+        }
+
+        Raylib.SetExitKey(KeyboardKey.Null);
+        _starSystem.Enter(
+            system,
+            _stars,
+            _params,
+            _timeYears,
+            picked.WorldPos,
+            galaxyFov,
+            galaxyTarget,
+            Raylib.GetScreenWidth(),
+            Raylib.GetScreenHeight());
+        _mode = AppMode.StarSystem;
+    }
+
+    private void ScheduleSystemCapture(string path, bool openAfter, bool exitAfter)
+    {
+        SystemCapture.EnsureParentDir(path);
+        _pendingCapturePath = Path.GetFullPath(path);
+        _pendingCaptureAt = _elapsedSec + Math.Max(_screenshotAfterSec, 0.35f);
+        _exitAfterScreenshot = exitAfter;
+        _openScreenshot = openAfter;
+        _hudBeforeCapture = _hud.ShowOverlay;
+        _hud.ShowOverlay = false;
+        _pendingCaptureRestoreHud = true;
+        _screenshotTaken = false;
+    }
+
+    private bool TryFinishPendingCapture()
+    {
+        if (_pendingCapturePath is null || _elapsedSec < _pendingCaptureAt || _screenshotTaken)
+            return false;
+
+        // Raylib prepends GetWorkingDirectory(); feed a relative path when possible.
+        var cwd = Directory.GetCurrentDirectory();
+        var path = _pendingCapturePath;
+        if (path.StartsWith(cwd, StringComparison.Ordinal))
+            path = Path.GetRelativePath(cwd, path);
+
+        Raylib.TakeScreenshot(path);
+        _screenshotTaken = true;
+        Console.WriteLine($"Wrote screenshot {_pendingCapturePath}");
+
+        if (_openScreenshot)
+            SystemCapture.OpenForViewing(_pendingCapturePath);
+
+        if (_pendingCaptureRestoreHud)
+            _hud.ShowOverlay = _hudBeforeCapture;
+
+        var exit = _exitAfterScreenshot;
+        _pendingCapturePath = null;
+        _pendingCaptureAt = -1f;
+        return exit;
     }
 
     private void ApplyPreset(GalaxyParams preset)
@@ -257,6 +464,7 @@ public sealed class AppHost : IDisposable
     {
         _stars = _generator.Generate(_params);
         _timeYears = _freezeAtYears > 0 ? _freezeAtYears : 0f;
+        (_starSystemCount, _planetCount) = PlanetarySystemGenerator.CountAll(_stars, _params.Seed);
         // Cover camera max zoom-out (FOV clamp 60000) with a little margin.
         var extent = 60000f * 1.15f;
         _starfield.Rebuild(_params.Seed, extent, _params.NumBackgroundStars);

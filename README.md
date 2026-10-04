@@ -39,7 +39,13 @@ Capture a frame (relative path; Raylib prepends the working directory):
 dotnet run -c Release -- --screenshot screenshots/out.png --after 2 --freeze 2400000
 ```
 
-Optional flags: `--hud`, `--no-hud`, `--no-axis`, `--fov <units>`, `--preset m81|galaxy1|sb`, `--freeze <years>`, `--after <seconds>`. Screenshots hide the HUD unless `--hud` is passed.
+Capture a random star system (enters system view, saves PNG, opens the desktop viewer):
+
+```bash
+dotnet run -c Release -- --random-system screenshots/system.png
+```
+
+Optional flags: `--hud`, `--no-hud`, `--no-axis`, `--no-open`, `--fov <units>`, `--preset m81|galaxy1|sb`, `--freeze <years>`, `--after <seconds>`. Screenshots hide the HUD unless `--hud` is passed.
 
 If compute shaders are unavailable, the app falls back to a CPU star preview and prints build instructions.
 
@@ -65,6 +71,9 @@ If compute shaders are unavailable, the app falls back to a CPU star preview and
 | `F5` | Full Sb preset (~200k+ particles) |
 | `F6` | Face-on Galaxy 1 / article-look preset |
 | `F7` | M81-approx preset (inclined + dust lanes) |
+| `F8` | Random star system + screenshot (opens viewer) |
+| LMB | Enter star system under cursor |
+| Esc | Exit star system (or quit in galaxy mode) |
 | `F11` | Toggle fullscreen |
 | `H` | Cycle HUD / help |
 
