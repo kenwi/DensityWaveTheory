@@ -4,6 +4,14 @@ C# / Raylib port of [beltoforion's density-wave galaxy renderer](https://beltofo
 
 Stars follow tilted elliptical orbits. A GLSL 430 **compute shader** evaluates positions into an SSBO each frame; point-sprite shaders draw stars, dust, filaments, and H-II regions.
 
+### Face-on (Galaxy 1)
+
+![Face-on spiral galaxy](docs/galaxy-face-on.png)
+
+### M81 approx
+
+![Inclined M81-like galaxy](docs/galaxy-m81.png)
+
 ## Requirements
 
 - .NET 10 SDK
