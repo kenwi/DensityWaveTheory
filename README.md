@@ -6,11 +6,11 @@ Stars follow tilted elliptical orbits. A GLSL 430 **compute shader** evaluates p
 
 ### Face-on (Galaxy 1)
 
-![Face-on spiral galaxy](docs/galaxy-face-on.png)
+https://github.com/user-attachments/assets/3bd2a678-e180-4bef-8a16-f296887f0693
 
 ### M81 approx
 
-![Inclined M81-like galaxy](docs/galaxy-m81.png)
+https://github.com/user-attachments/assets/e1b1375e-84dc-4457-a0d5-5504a69bfa11
 
 ## Requirements
 
