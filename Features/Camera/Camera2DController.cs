@@ -66,6 +66,24 @@ public sealed class Camera2DController
             Camera.Target -= delta / Camera.Zoom;
         }
 
+        var keyPan = Vector2.Zero;
+        if (Raylib.IsKeyDown(KeyboardKey.Left))
+            keyPan.X -= 1f;
+        if (Raylib.IsKeyDown(KeyboardKey.Right))
+            keyPan.X += 1f;
+        if (Raylib.IsKeyDown(KeyboardKey.Up))
+            keyPan.Y -= 1f;
+        if (Raylib.IsKeyDown(KeyboardKey.Down))
+            keyPan.Y += 1f;
+        if (keyPan != Vector2.Zero)
+        {
+            // ~half the screen height per second in screen space, then / zoom
+            // so world speed scales with FOV (faster when zoomed out).
+            var screenSpeed = Raylib.GetScreenHeight() * 0.5f;
+            var dir = Vector2.Normalize(keyPan);
+            Camera.Target += dir * screenSpeed * Raylib.GetFrameTime() / Camera.Zoom;
+        }
+
         if (Raylib.IsKeyPressed(KeyboardKey.Space))
             Paused = !Paused;
 

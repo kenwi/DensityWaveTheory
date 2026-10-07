@@ -4,6 +4,14 @@ C# / Raylib port of [beltoforion's density-wave galaxy renderer](https://beltofo
 
 Stars follow tilted elliptical orbits. A GLSL 430 **compute shader** evaluates positions into an SSBO each frame; point-sprite shaders draw stars, dust, filaments, and H-II regions.
 
+### Face-on (Galaxy 1)
+
+https://github.com/user-attachments/assets/3bd2a678-e180-4bef-8a16-f296887f0693
+
+### M81 approx
+
+https://github.com/user-attachments/assets/e1b1375e-84dc-4457-a0d5-5504a69bfa11
+
 ## Requirements
 
 - .NET 10 SDK
@@ -57,7 +65,7 @@ If compute shaders are unavailable, the app falls back to a CPU star preview and
 | `+` / `-` | Simulation speed |
 | `0` | Reset speed |
 | `R` | Recenter |
-| RMB / MMB | Pan |
+| Arrows / RMB / MMB | Pan (arrow speed scales with zoom) |
 | Wheel / `Z` / `X` / PgUp / PgDn | Zoom (adjusts FOV) |
 | `1`-`4` | Toggle stars / dust / filaments / H2 |
 | `G` | Toggle optional radial palette wash |

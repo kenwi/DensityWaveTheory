@@ -2,39 +2,36 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "build-release",
             "command": "dotnet",
             "type": "process",
             "args": [
                 "build",
                 "${workspaceFolder}/DensityWaveTheory.csproj",
+                "-c",
+                "Release",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary;ForceNoAlign"
             ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "publish",
+            "label": "build-debug",
             "command": "dotnet",
             "type": "process",
             "args": [
-                "publish",
+                "build",
                 "${workspaceFolder}/DensityWaveTheory.csproj",
+                "-c",
+                "Debug",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary;ForceNoAlign"
             ],
-            "problemMatcher": "$msCompile"
-        },
-        {
-            "label": "watch",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "watch",
-                "run",
-                "--project",
-                "${workspaceFolder}/DensityWaveTheory.csproj"
-            ],
+            "group": "build",
             "problemMatcher": "$msCompile"
         }
     ]
