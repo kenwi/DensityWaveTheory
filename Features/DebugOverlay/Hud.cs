@@ -94,7 +94,8 @@ public sealed class Hud
         float fieldOfView,
         PlanetarySystem? starSystem = null,
         int starSystemCount = 0,
-        long planetCount = 0)
+        long planetCount = 0,
+        PlanetFocus? planetFocus = null)
     {
         if (!ShowOverlay)
             return;
@@ -115,6 +116,29 @@ public sealed class Hud
             y += fontSize + 6;
         }
 
+        if (planetFocus is not null)
+        {
+            var pFocus = planetFocus.Planet;
+            var host = planetFocus.HostStar;
+            var hz = planetFocus.HabitableZone;
+            Line($"FPS {fps}  mode PLANET");
+            Line($"{pFocus.Name}  {pFocus.Type}  R={pFocus.RadiusEarth:0.00} Rearth");
+            Line($"a={pFocus.SemiMajorAu:0.000} AU  e={pFocus.Eccentricity:0.000}  P={pFocus.PeriodYears:0.00} yr");
+            Line($"moons {pFocus.Moons.Count}  HZ {(pFocus.InHabitableZone ? "inside" : "outside")} ({hz.InnerAu:0.00}-{hz.OuterAu:0.00} AU)");
+            Line($"host {host.SpectralClass}  T={host.TempKelvin:0} K  M={host.MassSolar:0.00} Msun");
+            Line($"speed x{simSpeed:0.##}{(paused ? "  PAUSED" : "")}  seed {planetFocus.SystemSeed}");
+
+            if (!ShowHelp)
+                return;
+
+            y += 10;
+            Line("Esc return to star system");
+            Line("Space pause  +/- speed  0 reset speed  R recenter");
+            Line("RMB/MMB pan  wheel/Z/X/PgUp/PgDn zoom");
+            Line("H hud");
+            return;
+        }
+
         if (starSystem is not null)
         {
             var star = starSystem.Star;
@@ -122,14 +146,19 @@ public sealed class Hud
             Line($"FPS {fps}  mode SYSTEM");
             Line($"star #{starSystem.SourceStarIndex}  {star.SpectralClass}  T={star.TempKelvin:0} K");
             Line($"M={star.MassSolar:0.00} Msun  L={star.LuminositySolar:0.00} Lsun  R={star.RadiusSolar:0.00} Rsun");
-            Line($"planets {starSystem.Planets.Count}  (galaxy {planetCount:N0})  HZ {hz.InnerAu:0.00}-{hz.OuterAu:0.00} AU");
-            Line($"systems {starSystemCount:N0}  speed x{simSpeed:0.##}{(paused ? "  PAUSED" : "")}  seed {starSystem.Seed}");
+            var moons = 0;
+            foreach (var planet in starSystem.Planets)
+                moons += planet.Moons.Count;
+            Line($"planets {starSystem.Planets.Count}  moons {moons}  (galaxy {planetCount:N0})");
+            Line($"HZ {hz.InnerAu:0.00}-{hz.OuterAu:0.00} AU  systems {starSystemCount:N0}");
+            Line($"speed x{simSpeed:0.##}{(paused ? "  PAUSED" : "")}  seed {starSystem.Seed}");
 
             if (!ShowHelp)
                 return;
 
             y += 10;
-            Line("Esc return to galaxy  F8 random system screenshot");
+            Line("LMB click planet to zoom in  Esc return to galaxy");
+            Line("F8 random system screenshot");
             Line("Space pause  +/- speed  0 reset speed  R recenter");
             Line("RMB/MMB pan  wheel/Z/X/PgUp/PgDn zoom");
             Line("H hud");

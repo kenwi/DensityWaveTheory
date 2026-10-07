@@ -2,25 +2,15 @@ using Raylib_cs;
 
 namespace DensityWaveTheory.Features.StarSystem;
 
-public enum PlanetType
-{
-    HotRocky,
-    Rocky,
-    Temperate,
-    Ice,
-    GasGiant,
-}
-
-public sealed class Planet
+public sealed class Moon
 {
     public required string Name { get; init; }
-    public required PlanetType Type { get; init; }
+    /// <summary>Orbital distance from planet in AU (physical-ish, usually tiny).</summary>
     public float SemiMajorAu { get; init; }
-    public float Eccentricity { get; init; }
+    /// <summary>Draw distance from planet in AU (exaggerated so moons read at system FOV).</summary>
+    public float VisualOrbitAu { get; init; }
     public float PeriodYears { get; init; }
     public float RadiusEarth { get; init; }
     public float PhaseRadians { get; init; }
     public Color Color { get; init; }
-    public bool InHabitableZone { get; init; }
-    public IReadOnlyList<Moon> Moons { get; init; } = [];
 }

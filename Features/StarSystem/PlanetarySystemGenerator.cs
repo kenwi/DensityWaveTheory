@@ -71,7 +71,9 @@ public static class PlanetarySystemGenerator
         var a0 = hz.MidAu / MathF.Pow(k, count * 0.45f);
         a0 = Math.Clamp(a0, hz.InnerAu * 0.08f, hz.InnerAu * 0.55f);
 
-        var planets = new List<Planet>(count);
+        // Pass 1: place planets (moons need neighbor gaps from the finished layout).
+        var drafts = new List<(string Name, PlanetType Type, float A, float Ecc, float Period,
+            float Radius, float Phase, Color Color, bool InHz)>(count);
         for (var i = 0; i < count; i++)
         {
             var a = a0 * MathF.Pow(k, i) * (0.94f + 0.12f * R());
@@ -82,19 +84,53 @@ public static class PlanetarySystemGenerator
             var type = Classify(a, hz, star);
             var radius = RadiusFor(type, R());
             var color = ColorFor(type, inHz, R());
-            var name = $"{star.SpectralClass}-{i + 1}";
+            drafts.Add((
+                $"{star.SpectralClass}-{i + 1}",
+                type,
+                a,
+                ecc,
+                Math.Max(period, 0.01f),
+                radius,
+                R() * MathF.Tau,
+                color,
+                inHz));
+        }
+
+        drafts.Sort((x, y) => x.A.CompareTo(y.A));
+
+        // Pass 2: moons sized so visual rings stay inside the gap to neighboring orbits.
+        var planets = new List<Planet>(drafts.Count);
+        for (var i = 0; i < drafts.Count; i++)
+        {
+            var d = drafts[i];
+            var peri = d.A * (1f - d.Ecc);
+            var apo = d.A * (1f + d.Ecc);
+            var gapIn = i > 0
+                ? peri - drafts[i - 1].A * (1f + drafts[i - 1].Ecc)
+                : peri * 0.5f;
+            var gapOut = i + 1 < drafts.Count
+                ? drafts[i + 1].A * (1f - drafts[i + 1].Ecc) - apo
+                : apo * 0.35f;
+            var clearance = Math.Max(0f, Math.Min(gapIn, gapOut));
+            // Leave margin so moon rings never touch another planet's orbital ellipse.
+            var maxMoonVisual = clearance * 0.38f;
+
+            var visualRadius = Math.Clamp(0.035f + 0.018f * d.Radius, 0.04f, 0.28f);
+            var moons = MoonGenerator.Generate(
+                rng, star, d.Type, d.A, d.Radius, visualRadius, maxMoonVisual, d.Name);
 
             planets.Add(new Planet
             {
-                Name = name,
-                Type = type,
-                SemiMajorAu = a,
-                Eccentricity = ecc,
-                PeriodYears = Math.Max(period, 0.01f),
-                RadiusEarth = radius,
-                PhaseRadians = R() * MathF.Tau,
-                Color = color,
-                InHabitableZone = inHz,
+                Name = d.Name,
+                Type = d.Type,
+                SemiMajorAu = d.A,
+                Eccentricity = d.Ecc,
+                PeriodYears = d.Period,
+                RadiusEarth = d.Radius,
+                PhaseRadians = d.Phase,
+                Color = d.Color,
+                InHabitableZone = d.InHz,
+                Moons = moons,
             });
         }
 

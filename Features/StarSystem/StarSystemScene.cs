@@ -13,6 +13,8 @@ public sealed class StarSystemScene
     private float _timeYears;
     private float _savedGalaxyFov;
     private Vector2 _savedGalaxyTarget;
+    private Vector2 _starWorldPos;
+
     public bool Active => _system is not null;
     public PlanetarySystem? System => _system;
 
@@ -31,6 +33,7 @@ public sealed class StarSystemScene
         _timeYears = 0f;
         _savedGalaxyFov = galaxyFov;
         _savedGalaxyTarget = galaxyTarget;
+        _starWorldPos = starWorldPos;
 
         var outer = 2f;
         foreach (var planet in system.Planets)
@@ -64,6 +67,59 @@ public sealed class StarSystemScene
 
         _system = null;
         _dust = null;
+        return true;
+    }
+
+    public bool TryGetResume(out StarSystemResume resume)
+    {
+        resume = default;
+        if (_system is null)
+            return false;
+
+        resume = new StarSystemResume(
+            _system.Seed,
+            _system.SourceStarIndex,
+            _system.Star.TempKelvin,
+            _starWorldPos,
+            _savedGalaxyFov,
+            _savedGalaxyTarget);
+        return true;
+    }
+
+    /// <summary>Release star-system state so only planet focus remains in memory.</summary>
+    public void Clear()
+    {
+        _system = null;
+        _dust = null;
+    }
+
+    public bool TryPickPlanet(Vector2 screenPos, out int planetIndex)
+    {
+        planetIndex = -1;
+        if (_system is null)
+            return false;
+
+        var bestDistSq = float.MaxValue;
+        var best = -1;
+        for (var i = 0; i < _system.Planets.Count; i++)
+        {
+            var planet = _system.Planets[i];
+            var world = PlanetPosition(planet, _timeYears);
+            var screen = Raylib.GetWorldToScreen2D(world, _camera);
+            var radiusAu = Math.Clamp(0.035f + 0.018f * planet.RadiusEarth, 0.04f, 0.28f);
+            var radiusPx = Math.Max(radiusAu * _camera.Zoom, 10f) + 8f;
+            var dx = screen.X - screenPos.X;
+            var dy = screen.Y - screenPos.Y;
+            var distSq = dx * dx + dy * dy;
+            if (distSq > radiusPx * radiusPx || distSq >= bestDistSq)
+                continue;
+            bestDistSq = distSq;
+            best = i;
+        }
+
+        if (best < 0)
+            return false;
+        planetIndex = best;
         return true;
     }
 
@@ -189,13 +245,38 @@ public sealed class StarSystemScene
             var pos = PlanetPosition(planet, _timeYears);
             // Disc size exaggerated vs true Earth radii so planets read at AU scale.
             var radius = Math.Clamp(0.035f + 0.018f * planet.RadiusEarth, 0.04f, 0.28f);
+
+            DrawMoonOrbits(pos, planet);
+            DrawMoons(pos, planet);
+
             Raylib.DrawCircleV(pos, radius, planet.Color);
-            Raylib.DrawCircleV(
-                pos + new Vector2(-radius * 0.22f, -radius * 0.22f),
-                radius * 0.32f,
-                new Color((byte)255, (byte)255, (byte)255, (byte)55));
             if (planet.InHabitableZone)
                 Raylib.DrawCircleLinesV(pos, radius * 1.45f, new Color(120, 255, 180, 180));
+        }
+    }
+
+    private void DrawMoonOrbits(Vector2 planetPos, Planet planet)
+    {
+        foreach (var moon in planet.Moons)
+        {
+            Raylib.DrawCircleLinesV(
+                planetPos,
+                moon.VisualOrbitAu,
+                new Color(180, 180, 200, 35));
+        }
+    }
+
+    private void DrawMoons(Vector2 planetPos, Planet planet)
+    {
+        foreach (var moon in planet.Moons)
+        {
+            var angle = moon.PhaseRadians +
+                        MathF.Tau * (_timeYears / Math.Max(moon.PeriodYears, 0.0005f));
+            var offset = new Vector2(
+                moon.VisualOrbitAu * MathF.Cos(angle),
+                moon.VisualOrbitAu * MathF.Sin(angle));
+            var moonR = Math.Clamp(0.012f + 0.02f * moon.RadiusEarth, 0.012f, 0.07f);
+            Raylib.DrawCircleV(planetPos + offset, moonR, moon.Color);
         }
     }
 
