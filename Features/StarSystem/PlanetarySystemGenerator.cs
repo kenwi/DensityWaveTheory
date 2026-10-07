@@ -134,7 +134,7 @@ public static class PlanetarySystemGenerator
             });
         }
 
-        return new PlanetarySystem
+        var system = new PlanetarySystem
         {
             Star = star,
             HabitableZone = hz,
@@ -142,6 +142,8 @@ public static class PlanetarySystemGenerator
             SourceStarIndex = starIndex,
             Seed = seed,
         };
+        SurfaceGenerator.AssignSystemSurfaces(system, detail: 48);
+        return system;
     }
 
     private static int PlanetCount(string spectralClass, Random rng) => spectralClass switch

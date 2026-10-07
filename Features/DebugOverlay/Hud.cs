@@ -95,7 +95,8 @@ public sealed class Hud
         PlanetarySystem? starSystem = null,
         int starSystemCount = 0,
         long planetCount = 0,
-        PlanetFocus? planetFocus = null)
+        PlanetFocus? planetFocus = null,
+        MoonFocus? moonFocus = null)
     {
         if (!ShowOverlay)
             return;
@@ -116,6 +117,29 @@ public sealed class Hud
             y += fontSize + 6;
         }
 
+        if (moonFocus is not null)
+        {
+            var moon = moonFocus.Moon;
+            var host = moonFocus.HostStar;
+            Line($"FPS {fps}  mode MOON");
+            Line($"{moon.Name}  R={moon.RadiusEarth:0.00} Rearth");
+            Line($"orbit a={moon.SemiMajorAu:0.######} AU  P={moon.PeriodYears * 365.25f:0.00} d");
+            Line($"parent {moonFocus.ParentName}  {moonFocus.ParentType}  R={moonFocus.ParentRadiusEarth:0.00} Rearth");
+            Line($"parent a={moonFocus.ParentSemiMajorAu:0.000} AU");
+            Line($"host {host.SpectralClass}  T={host.TempKelvin:0} K  M={host.MassSolar:0.00} Msun");
+            Line($"speed x{simSpeed:0.##}{(paused ? "  PAUSED" : "")}  seed {moonFocus.SystemSeed}");
+
+            if (!ShowHelp)
+                return;
+
+            y += 10;
+            Line("Esc return to planet");
+            Line("Space pause  +/- speed  0 reset speed  R recenter");
+            Line("RMB/MMB pan  wheel/Z/X/PgUp/PgDn zoom");
+            Line("H hud");
+            return;
+        }
+
         if (planetFocus is not null)
         {
             var pFocus = planetFocus.Planet;
@@ -132,7 +156,7 @@ public sealed class Hud
                 return;
 
             y += 10;
-            Line("Esc return to star system");
+            Line("LMB click moon to zoom in  Esc return to star system");
             Line("Space pause  +/- speed  0 reset speed  R recenter");
             Line("RMB/MMB pan  wheel/Z/X/PgUp/PgDn zoom");
             Line("H hud");

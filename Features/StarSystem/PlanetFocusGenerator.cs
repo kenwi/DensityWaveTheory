@@ -43,6 +43,16 @@ public static class PlanetFocusGenerator
             Moons = moons,
         };
 
+        var focusSeed = unchecked(system.Seed * 397 ^ (planetIndex + 1) ^ 0x53555246);
+        planet.Surface = SurfaceGenerator.CreatePlanet(
+            focusSeed, planet.Type, planet.Color, planet.InHabitableZone, 192);
+        for (var mi = 0; mi < planet.Moons.Count; mi++)
+        {
+            var moon = planet.Moons[mi];
+            moon.Surface = SurfaceGenerator.CreateMoon(
+                unchecked(focusSeed * 31 ^ mi * 577), moon.Color, 80);
+        }
+
         return new PlanetFocus
         {
             Planet = planet,

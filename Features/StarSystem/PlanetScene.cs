@@ -44,8 +44,73 @@ public sealed class PlanetScene
             return false;
 
         resume = _focus.Resume;
+        DisposeFocusSurfaces(_focus);
         _focus = null;
         return true;
+    }
+
+    public bool TryGetPlanetResume(out PlanetResume resume)
+    {
+        resume = default;
+        if (_focus is null)
+            return false;
+        resume = new PlanetResume(_focus.Resume, _focus.PlanetIndex);
+        return true;
+    }
+
+    /// <summary>Release planet-focus state so only moon focus remains in memory.</summary>
+    public void Clear()
+    {
+        if (_focus is null)
+            return;
+        DisposeFocusSurfaces(_focus);
+        _focus = null;
+    }
+
+    public bool TryPickMoon(Vector2 screenPos, out int moonIndex)
+    {
+        moonIndex = -1;
+        if (_focus is null)
+            return false;
+
+        var bestDistSq = float.MaxValue;
+        var best = -1;
+        var planet = _focus.Planet;
+        for (var i = 0; i < planet.Moons.Count; i++)
+        {
+            var moon = planet.Moons[i];
+            var angle = moon.PhaseRadians +
+                        MathF.Tau * (_timeYears / Math.Max(moon.PeriodYears, 0.0005f));
+            var world = new Vector2(
+                moon.VisualOrbitAu * MathF.Cos(angle),
+                moon.VisualOrbitAu * MathF.Sin(angle));
+            var screen = Raylib.GetWorldToScreen2D(world, _camera);
+            var moonR = Math.Clamp(0.08f + 0.12f * moon.RadiusEarth, 0.07f, 0.45f);
+            var radiusPx = Math.Max(moonR * _camera.Zoom, 12f) + 10f;
+            var dx = screen.X - screenPos.X;
+            var dy = screen.Y - screenPos.Y;
+            var distSq = dx * dx + dy * dy;
+            if (distSq > radiusPx * radiusPx || distSq >= bestDistSq)
+                continue;
+            bestDistSq = distSq;
+            best = i;
+        }
+
+        if (best < 0)
+            return false;
+        moonIndex = best;
+        return true;
+    }
+
+    private static void DisposeFocusSurfaces(PlanetFocus focus)
+    {
+        focus.Planet.Surface?.Dispose();
+        focus.Planet.Surface = null;
+        foreach (var moon in focus.Planet.Moons)
+        {
+            moon.Surface?.Dispose();
+            moon.Surface = null;
+        }
     }
 
     public void HandleResize(int screenWidth, int screenHeight)
@@ -126,10 +191,16 @@ public sealed class PlanetScene
                 moon.VisualOrbitAu * MathF.Cos(angle),
                 moon.VisualOrbitAu * MathF.Sin(angle));
             var moonR = Math.Clamp(0.08f + 0.12f * moon.RadiusEarth, 0.07f, 0.45f);
-            Raylib.DrawCircleV(pos, moonR, moon.Color);
+            if (moon.Surface is not null)
+                moon.Surface.Draw(pos, moonR);
+            else
+                Raylib.DrawCircleV(pos, moonR, moon.Color);
         }
 
-        Raylib.DrawCircleV(Vector2.Zero, planetR, planet.Color);
+        if (planet.Surface is not null)
+            planet.Surface.Draw(Vector2.Zero, planetR);
+        else
+            Raylib.DrawCircleV(Vector2.Zero, planetR, planet.Color);
         if (planet.InHabitableZone)
             Raylib.DrawCircleLinesV(Vector2.Zero, planetR * 1.12f, new Color(120, 255, 180, 160));
 

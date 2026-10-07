@@ -23,4 +23,5 @@ public sealed class Planet
     public Color Color { get; init; }
     public bool InHabitableZone { get; init; }
     public IReadOnlyList<Moon> Moons { get; init; } = [];
+    public BodySurface? Surface { get; set; }
 }

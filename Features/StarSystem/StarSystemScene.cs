@@ -65,6 +65,7 @@ public sealed class StarSystemScene
         if (_system is null)
             return false;
 
+        SurfaceGenerator.DisposeSystemSurfaces(_system);
         _system = null;
         _dust = null;
         return true;
@@ -89,6 +90,7 @@ public sealed class StarSystemScene
     /// <summary>Release star-system state so only planet focus remains in memory.</summary>
     public void Clear()
     {
+        SurfaceGenerator.DisposeSystemSurfaces(_system);
         _system = null;
         _dust = null;
     }
@@ -249,7 +251,10 @@ public sealed class StarSystemScene
             DrawMoonOrbits(pos, planet);
             DrawMoons(pos, planet);
 
-            Raylib.DrawCircleV(pos, radius, planet.Color);
+            if (planet.Surface is not null)
+                planet.Surface.Draw(pos, radius);
+            else
+                Raylib.DrawCircleV(pos, radius, planet.Color);
             if (planet.InHabitableZone)
                 Raylib.DrawCircleLinesV(pos, radius * 1.45f, new Color(120, 255, 180, 180));
         }
@@ -276,7 +281,10 @@ public sealed class StarSystemScene
                 moon.VisualOrbitAu * MathF.Cos(angle),
                 moon.VisualOrbitAu * MathF.Sin(angle));
             var moonR = Math.Clamp(0.012f + 0.02f * moon.RadiusEarth, 0.012f, 0.07f);
-            Raylib.DrawCircleV(planetPos + offset, moonR, moon.Color);
+            if (moon.Surface is not null)
+                moon.Surface.Draw(planetPos + offset, moonR);
+            else
+                Raylib.DrawCircleV(planetPos + offset, moonR, moon.Color);
         }
     }
 

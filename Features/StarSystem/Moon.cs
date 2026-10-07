@@ -13,4 +13,5 @@ public sealed class Moon
     public float RadiusEarth { get; init; }
     public float PhaseRadians { get; init; }
     public Color Color { get; init; }
+    public BodySurface? Surface { get; set; }
 }

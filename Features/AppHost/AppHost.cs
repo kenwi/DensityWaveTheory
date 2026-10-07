@@ -14,6 +14,7 @@ public enum AppMode
     Galaxy,
     StarSystem,
     Planet,
+    Moon,
 }
 
 public sealed class AppHost : IDisposable
@@ -28,6 +29,7 @@ public sealed class AppHost : IDisposable
     private readonly StarfieldRenderer _starfield = new();
     private readonly StarSystemScene _starSystem = new();
     private readonly PlanetScene _planet = new();
+    private readonly MoonScene _moon = new();
 
     private GalaxyParams _params = Presets.ReferenceGalaxy1();
     private Star[] _stars = [];
@@ -172,6 +174,7 @@ public sealed class AppHost : IDisposable
                 _camera.HandleResize(sw, sh);
                 _starSystem.HandleResize(sw, sh);
                 _planet.HandleResize(sw, sh);
+                _moon.HandleResize(sw, sh);
             }
 
             if (_mode == AppMode.Galaxy)
@@ -183,7 +186,11 @@ public sealed class AppHost : IDisposable
             HandleHotkeys();
             HandleStarSystemInput();
 
-            if (_mode == AppMode.Planet)
+            if (_mode == AppMode.Moon)
+            {
+                _moon.Update(dt, _camera.SimSpeed, _camera.Paused);
+            }
+            else if (_mode == AppMode.Planet)
             {
                 _planet.Update(dt, _camera.SimSpeed, _camera.Paused);
             }
@@ -221,7 +228,11 @@ public sealed class AppHost : IDisposable
                 ? new Color(0, 0, 0, 255)
                 : new Color(0, 0, 20, 255));
 
-            if (_mode == AppMode.Planet)
+            if (_mode == AppMode.Moon)
+            {
+                _moon.Draw(_hud.Visuals.SoftGlow);
+            }
+            else if (_mode == AppMode.Planet)
             {
                 _planet.Draw(_hud.Visuals.SoftGlow);
             }
@@ -265,7 +276,8 @@ public sealed class AppHost : IDisposable
                 _mode == AppMode.StarSystem ? _starSystem.System : null,
                 _starSystemCount,
                 _planetCount,
-                _mode == AppMode.Planet ? _planet.Focus : null);
+                _mode == AppMode.Planet ? _planet.Focus : null,
+                _mode == AppMode.Moon ? _moon.Focus : null);
 
             if (!_gpuReady && _mode == AppMode.Galaxy)
             {
@@ -303,7 +315,7 @@ public sealed class AppHost : IDisposable
             Raylib.ToggleFullscreen();
 
         // F8: jump to a random system, screenshot it, and open the image.
-        if (Raylib.IsKeyPressed(KeyboardKey.F8) && _mode != AppMode.Planet)
+        if (Raylib.IsKeyPressed(KeyboardKey.F8) && _mode is AppMode.Galaxy or AppMode.StarSystem)
         {
             if (EnterRandomStarSystem(Random.Shared))
             {
@@ -352,12 +364,34 @@ public sealed class AppHost : IDisposable
 
     private void HandleStarSystemInput()
     {
+        if (_mode == AppMode.Moon)
+        {
+            if (Raylib.IsKeyPressed(KeyboardKey.Escape) &&
+                _moon.TryExit(out var planetResume))
+            {
+                RestorePlanet(planetResume);
+            }
+
+            return;
+        }
+
         if (_mode == AppMode.Planet)
         {
             if (Raylib.IsKeyPressed(KeyboardKey.Escape) &&
                 _planet.TryExit(out var resume))
             {
                 RestoreStarSystem(resume);
+                return;
+            }
+
+            if (Raylib.IsMouseButtonPressed(MouseButton.Left) &&
+                _planet.Focus is { } planetFocus &&
+                _planet.TryPickMoon(Raylib.GetMousePosition(), out var moonIndex))
+            {
+                var moonFocus = MoonFocusGenerator.Build(planetFocus, moonIndex);
+                _planet.Clear();
+                _moon.Enter(moonFocus, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
+                _mode = AppMode.Moon;
             }
 
             return;
@@ -417,6 +451,20 @@ public sealed class AppHost : IDisposable
             Raylib.GetScreenWidth(),
             Raylib.GetScreenHeight());
         _mode = AppMode.StarSystem;
+    }
+
+    private void RestorePlanet(PlanetResume resume)
+    {
+        var system = PlanetarySystemGenerator.Generate(
+            resume.SystemResume.Seed,
+            resume.SystemResume.StarIndex,
+            resume.SystemResume.TempKelvin);
+        var focus = PlanetFocusGenerator.Build(system, resume.PlanetIndex, resume.SystemResume);
+        // Focus owns its own textures; drop the temporary full-system surfaces.
+        SurfaceGenerator.DisposeSystemSurfaces(system);
+        Raylib.SetExitKey(KeyboardKey.Null);
+        _planet.Enter(focus, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
+        _mode = AppMode.Planet;
     }
 
     private bool EnterRandomStarSystem(Random rng)
