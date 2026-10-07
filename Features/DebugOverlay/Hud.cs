@@ -107,11 +107,12 @@ public sealed class Hud
         }
 
         var fps = Raylib.GetFPS();
-        var y = 10;
+        var y = 12;
+        const int fontSize = 20;
         void Line(string text)
         {
-            Raylib.DrawText(text, 10, y, 16, Color.RayWhite);
-            y += 20;
+            Raylib.DrawText(text, 12, y, fontSize, Color.RayWhite);
+            y += fontSize + 6;
         }
 
         if (starSystem is not null)
