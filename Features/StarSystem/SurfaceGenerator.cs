@@ -106,6 +106,10 @@ public static class SurfaceGenerator
 
     public static void AssignSystemSurfaces(PlanetarySystem system, int detail = 48)
     {
+        // Allow offline counts / tests before a window exists.
+        if (!Raylib.IsWindowReady())
+            return;
+
         var i = 0;
         foreach (var planet in system.Planets)
         {

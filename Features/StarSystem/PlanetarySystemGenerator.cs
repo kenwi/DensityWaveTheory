@@ -36,7 +36,7 @@ public static class PlanetarySystemGenerator
     }
 
     /// <summary>
-    /// Exact total planets across all type-0 stars (deterministic generator, no full systems built).
+    /// Exact star-system and planet totals (light path - no full system build).
     /// </summary>
     public static (int Systems, long Planets) CountAll(Star[] stars, uint galaxySeed)
     {
@@ -54,6 +54,31 @@ public static class PlanetarySystemGenerator
         }
 
         return (systems, planets);
+    }
+
+    /// <summary>
+    /// Exact systems, planets, and moons (full generate; textures skipped if no window).
+    /// </summary>
+    public static (int Systems, long Planets, long Moons) CountAllDeep(Star[] stars, uint galaxySeed)
+    {
+        var systems = 0;
+        long planets = 0;
+        long moons = 0;
+        for (var i = 0; i < stars.Length; i++)
+        {
+            ref readonly var s = ref stars[i];
+            if (s.Type != (int)ParticleType.Star)
+                continue;
+
+            var seed = MakeSeed(galaxySeed, i, s.A, s.Theta0, s.Temp);
+            var system = Generate(seed, i, s.Temp);
+            planets += system.Planets.Count;
+            foreach (var planet in system.Planets)
+                moons += planet.Moons.Count;
+            systems++;
+        }
+
+        return (systems, planets, moons);
     }
 
     public static PlanetarySystem Generate(int seed, int starIndex, float tempKelvin)
