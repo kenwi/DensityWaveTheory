@@ -1,4 +1,5 @@
 using System.Numerics;
+using DensityWaveTheory.Shared;
 using Raylib_cs;
 
 namespace DensityWaveTheory.Features.StarSystem;
@@ -80,7 +81,7 @@ public sealed class PlanetScene
         {
             var moon = planet.Moons[i];
             var angle = moon.PhaseRadians +
-                        MathF.Tau * (_timeYears / Math.Max(moon.PeriodYears, 0.0005f));
+                        MathF.Tau * (_timeYears / Math.Max(moon.PeriodYears, SystemViewScale.MinMoonOrbitPeriodYears));
             var world = new Vector2(
                 moon.VisualOrbitAu * MathF.Cos(angle),
                 moon.VisualOrbitAu * MathF.Sin(angle));
@@ -132,7 +133,7 @@ public sealed class PlanetScene
         var wheel = Raylib.GetMouseWheelMove();
         if (wheel != 0)
         {
-            _fov *= MathF.Pow(0.9f, wheel);
+            _fov *= MathF.Pow(ViewControls.ZoomStepFactor, wheel);
             _fov = Math.Clamp(_fov, 2f, 40f);
             _camera.Zoom = Raylib.GetScreenHeight() / _fov;
         }
@@ -144,7 +145,7 @@ public sealed class PlanetScene
             keyZoom -= 1f;
         if (keyZoom != 0f)
         {
-            _fov *= MathF.Pow(0.9f, keyZoom * dt * 8f);
+            _fov *= MathF.Pow(ViewControls.ZoomStepFactor, keyZoom * dt * ViewControls.KeyZoomRate);
             _fov = Math.Clamp(_fov, 2f, 40f);
             _camera.Zoom = Raylib.GetScreenHeight() / _fov;
         }
@@ -186,7 +187,7 @@ public sealed class PlanetScene
         foreach (var moon in planet.Moons)
         {
             var angle = moon.PhaseRadians +
-                        MathF.Tau * (_timeYears / Math.Max(moon.PeriodYears, 0.0005f));
+                        MathF.Tau * (_timeYears / Math.Max(moon.PeriodYears, SystemViewScale.MinMoonOrbitPeriodYears));
             var pos = new Vector2(
                 moon.VisualOrbitAu * MathF.Cos(angle),
                 moon.VisualOrbitAu * MathF.Sin(angle));

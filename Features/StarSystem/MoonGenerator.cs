@@ -120,7 +120,7 @@ public static class MoonGenerator
 
             var mSolar = Math.Max(planetMassEarth * 3.003e-6f, 1e-9f);
             var period = MathF.Sqrt(MathF.Pow(Math.Max(aPhys, 1e-9f), 3f) / mSolar);
-            period = Math.Clamp(period, 0.0005f, 0.12f);
+            period = Math.Clamp(period, SystemViewScale.MinMoonOrbitPeriodYears, 0.12f);
 
             var u = count == 1 ? 0.5f : i / (float)(count - 1);
             var visual = minVisual + packSpan * (0.08f + 0.88f * u);

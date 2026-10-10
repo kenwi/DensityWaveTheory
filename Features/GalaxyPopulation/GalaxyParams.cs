@@ -1,3 +1,5 @@
+using DensityWaveTheory.Shared;
+
 namespace DensityWaveTheory.Features.GalaxyPopulation;
 
 public sealed class GalaxyParams
@@ -20,7 +22,7 @@ public sealed class GalaxyParams
     /// <summary>Occluding dark dust-lane particles (0 = none).</summary>
     public int NumDustLanes { get; set; }
     /// <summary>World-space vertical field of view used to set camera zoom.</summary>
-    public float FieldOfView { get; set; } = 33960f;
+    public float FieldOfView { get; set; } = ViewControls.DefaultGalaxyFieldOfView;
     /// <summary>Disc inclination from face-on, degrees (0 = face-on, ~58 ≈ M81).</summary>
     public float InclinationDeg { get; set; }
     /// <summary>In-plane view rotation after inclination, degrees.</summary>

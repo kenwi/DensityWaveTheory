@@ -1,15 +1,13 @@
 using System.Numerics;
+using DensityWaveTheory.Shared;
 using Raylib_cs;
 
 namespace DensityWaveTheory.Features.Camera;
 
 public sealed class Camera2DController
 {
-    private const float DefaultFieldOfView = 33960f;
     private const float MinFieldOfView = 10f;
     private const float MaxFieldOfView = 60000f;
-    private const float ZoomStepFactor = 0.9f;
-    private const float KeyZoomRate = 8f;
     private const float PanScreenHeightPerSecond = 0.5f;
     private const float DefaultSimSpeed = 1f;
     private const float MinSimSpeed = 0.0005f;
@@ -19,9 +17,12 @@ public sealed class Camera2DController
     public Camera2D Camera;
     public float SimSpeed { get; private set; } = DefaultSimSpeed;
     public bool Paused { get; private set; }
-    public float FieldOfView { get; private set; } = DefaultFieldOfView;
+    public float FieldOfView { get; private set; } = ViewControls.DefaultGalaxyFieldOfView;
 
-    public Camera2DController(int screenWidth, int screenHeight, float fieldOfView = DefaultFieldOfView)
+    public Camera2DController(
+        int screenWidth,
+        int screenHeight,
+        float fieldOfView = ViewControls.DefaultGalaxyFieldOfView)
     {
         FieldOfView = fieldOfView;
         Camera = new Camera2D
@@ -54,7 +55,7 @@ public sealed class Camera2DController
         if (wheel != 0)
         {
             // Match reference: FOV *= ZoomStepFactor^wheel (wheel up zooms in).
-            FieldOfView *= MathF.Pow(ZoomStepFactor, wheel);
+            FieldOfView *= MathF.Pow(ViewControls.ZoomStepFactor, wheel);
             FieldOfView = Math.Clamp(FieldOfView, MinFieldOfView, MaxFieldOfView);
             Camera.Zoom = Raylib.GetScreenHeight() / FieldOfView;
         }
@@ -66,7 +67,9 @@ public sealed class Camera2DController
             keyZoom -= 1f;
         if (keyZoom != 0f)
         {
-            FieldOfView *= MathF.Pow(ZoomStepFactor, keyZoom * Raylib.GetFrameTime() * KeyZoomRate);
+            FieldOfView *= MathF.Pow(
+                ViewControls.ZoomStepFactor,
+                keyZoom * Raylib.GetFrameTime() * ViewControls.KeyZoomRate);
             FieldOfView = Math.Clamp(FieldOfView, MinFieldOfView, MaxFieldOfView);
             Camera.Zoom = Raylib.GetScreenHeight() / FieldOfView;
         }

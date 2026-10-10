@@ -1,4 +1,5 @@
 using System.Numerics;
+using DensityWaveTheory.Shared;
 using Raylib_cs;
 
 namespace DensityWaveTheory.Features.StarSystem;
@@ -61,7 +62,7 @@ public sealed class MoonScene
         var wheel = Raylib.GetMouseWheelMove();
         if (wheel != 0)
         {
-            _fov *= MathF.Pow(0.9f, wheel);
+            _fov *= MathF.Pow(ViewControls.ZoomStepFactor, wheel);
             _fov = Math.Clamp(_fov, 1.5f, 20f);
             _camera.Zoom = Raylib.GetScreenHeight() / _fov;
         }
@@ -73,7 +74,7 @@ public sealed class MoonScene
             keyZoom -= 1f;
         if (keyZoom != 0f)
         {
-            _fov *= MathF.Pow(0.9f, keyZoom * dt * 8f);
+            _fov *= MathF.Pow(ViewControls.ZoomStepFactor, keyZoom * dt * ViewControls.KeyZoomRate);
             _fov = Math.Clamp(_fov, 1.5f, 20f);
             _camera.Zoom = Raylib.GetScreenHeight() / _fov;
         }

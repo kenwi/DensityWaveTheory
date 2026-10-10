@@ -140,7 +140,7 @@ public static class PlanetarySystemGenerator
             // Leave margin so moon rings never touch another planet's orbital ellipse.
             var maxMoonVisual = clearance * 0.38f;
 
-            var visualRadius = Math.Clamp(0.035f + 0.018f * d.Radius, 0.04f, 0.28f);
+            var visualRadius = SystemViewScale.VisualPlanetRadiusAu(d.Radius);
             var moons = MoonGenerator.Generate(
                 rng, star, d.Type, d.A, d.Radius, visualRadius, maxMoonVisual, d.Name);
 

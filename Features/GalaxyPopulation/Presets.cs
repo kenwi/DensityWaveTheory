@@ -1,3 +1,5 @@
+using DensityWaveTheory.Shared;
+
 namespace DensityWaveTheory.Features.GalaxyPopulation;
 
 public static class Presets
@@ -23,7 +25,7 @@ public static class Presets
         BaseTemp = 4900f,
         H2SizeMax = 100f,
         H2Threshold = 1.2f,
-        FieldOfView = 33960f,
+        FieldOfView = ViewControls.DefaultGalaxyFieldOfView,
         InclinationDeg = 0f,
         ViewRotationDeg = 0f,
         PhotoLook = false,
@@ -80,7 +82,7 @@ public static class Presets
         BaseTemp = 4000f,
         H2SizeMax = 100f,
         H2Threshold = 1.2f,
-        FieldOfView = 33960f,
+        FieldOfView = ViewControls.DefaultGalaxyFieldOfView,
         InclinationDeg = 0f,
         ViewRotationDeg = 0f,
         PhotoLook = false,

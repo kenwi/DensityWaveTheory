@@ -1,5 +1,6 @@
 using System.Numerics;
 using DensityWaveTheory.Features.GalaxyPopulation;
+using DensityWaveTheory.Shared;
 using Raylib_cs;
 
 namespace DensityWaveTheory.Features.StarSystem;
@@ -108,7 +109,7 @@ public sealed class StarSystemScene
             var planet = _system.Planets[i];
             var world = PlanetPosition(planet, _timeYears);
             var screen = Raylib.GetWorldToScreen2D(world, _camera);
-            var radiusAu = Math.Clamp(0.035f + 0.018f * planet.RadiusEarth, 0.04f, 0.28f);
+            var radiusAu = SystemViewScale.VisualPlanetRadiusAu(planet.RadiusEarth);
             var radiusPx = Math.Max(radiusAu * _camera.Zoom, 10f) + 8f;
             var dx = screen.X - screenPos.X;
             var dy = screen.Y - screenPos.Y;
@@ -144,7 +145,7 @@ public sealed class StarSystemScene
         var wheel = Raylib.GetMouseWheelMove();
         if (wheel != 0)
         {
-            _fovAu *= MathF.Pow(0.9f, wheel);
+            _fovAu *= MathF.Pow(ViewControls.ZoomStepFactor, wheel);
             _fovAu = Math.Clamp(_fovAu, 0.4f, 100f);
             _camera.Zoom = Raylib.GetScreenHeight() / _fovAu;
         }
@@ -156,7 +157,7 @@ public sealed class StarSystemScene
             keyZoom -= 1f;
         if (keyZoom != 0f)
         {
-            _fovAu *= MathF.Pow(0.9f, keyZoom * dt * 8f);
+            _fovAu *= MathF.Pow(ViewControls.ZoomStepFactor, keyZoom * dt * ViewControls.KeyZoomRate);
             _fovAu = Math.Clamp(_fovAu, 0.4f, 100f);
             _camera.Zoom = Raylib.GetScreenHeight() / _fovAu;
         }
@@ -246,7 +247,7 @@ public sealed class StarSystemScene
         {
             var pos = PlanetPosition(planet, _timeYears);
             // Disc size exaggerated vs true Earth radii so planets read at AU scale.
-            var radius = Math.Clamp(0.035f + 0.018f * planet.RadiusEarth, 0.04f, 0.28f);
+            var radius = SystemViewScale.VisualPlanetRadiusAu(planet.RadiusEarth);
 
             DrawMoonOrbits(pos, planet);
             DrawMoons(pos, planet);
@@ -276,7 +277,7 @@ public sealed class StarSystemScene
         foreach (var moon in planet.Moons)
         {
             var angle = moon.PhaseRadians +
-                        MathF.Tau * (_timeYears / Math.Max(moon.PeriodYears, 0.0005f));
+                        MathF.Tau * (_timeYears / Math.Max(moon.PeriodYears, SystemViewScale.MinMoonOrbitPeriodYears));
             var offset = new Vector2(
                 moon.VisualOrbitAu * MathF.Cos(angle),
                 moon.VisualOrbitAu * MathF.Sin(angle));
