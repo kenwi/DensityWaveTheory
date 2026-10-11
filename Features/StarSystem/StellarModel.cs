@@ -1,3 +1,5 @@
+using DensityWaveTheory.Shared;
+
 namespace DensityWaveTheory.Features.StarSystem;
 
 /// <summary>
@@ -33,7 +35,7 @@ public readonly record struct StellarModel(
         var luminosity = MathF.Pow(mass, 3.5f);
 
         // Stefan-Boltzmann: L/Lsun = (R/Rsun)^2 (T/Tsun)^4
-        var tSun = 5772f;
+        var tSun = AstroConstants.SolarEffectiveTempKelvin;
         var radius = MathF.Sqrt(luminosity) / MathF.Pow(t / tSun, 2f);
         radius = Math.Clamp(radius, 0.15f, 4.0f);
 

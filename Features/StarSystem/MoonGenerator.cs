@@ -1,3 +1,4 @@
+using DensityWaveTheory.Shared;
 using Raylib_cs;
 
 namespace DensityWaveTheory.Features.StarSystem;
@@ -32,8 +33,10 @@ public static class MoonGenerator
         var planetMassEarth = MassEarth(type, planetRadiusEarth);
         var hillAu = HillRadiusAu(planetSemiMajorAu, planetMassEarth, star.MassSolar);
         // Stable prograde moons typically sit inside ~0.5 R_Hill (Domingos et al.).
-        var outerStable = hillAu * 0.45f;
-        var inner = Math.Max(planetRadiusEarth * 0.0000426f * 3f, outerStable * 0.05f); // ~3 planetary radii floor
+        var outerStable = hillAu * AstroConstants.StableMoonHillFraction;
+        var inner = Math.Max(
+            planetRadiusEarth * AstroConstants.EarthRadiusAu * AstroConstants.MinMoonOrbitPlanetRadii,
+            outerStable * 0.05f);
         if (outerStable <= inner * 1.2f)
             return []; // Hill sphere too small (very close-in)
 
@@ -55,9 +58,8 @@ public static class MoonGenerator
             var aPhys = inner + (outerStable - inner) * t * (0.9f + 0.2f * R());
             aPhys = Math.Clamp(aPhys, inner, outerStable);
 
-            // Kepler period around the planet (years): P = 2π √(a³ / GM).
-            // Using Earth units: P_yr ≈ √(a_AU³ / (M_earth / M_sun)) with M_earth/M_sun ≈ 3.003e-6.
-            var mSolar = Math.Max(planetMassEarth * 3.003e-6f, 1e-9f);
+            // Kepler period around the planet (years): P ≈ √(a_AU³ / (M_p / M☉)).
+            var mSolar = Math.Max(planetMassEarth * AstroConstants.EarthMassSolar, 1e-9f);
             var period = MathF.Sqrt(MathF.Pow(aPhys, 3f) / mSolar);
             // Moons orbit fast; clamp so animation stays readable at system time scale.
             period = Math.Clamp(period, 0.0008f, 0.08f);
@@ -104,8 +106,12 @@ public static class MoonGenerator
 
         var planetMassEarth = MassEarth(type, planetRadiusEarth);
         var hillAu = HillRadiusAu(planetSemiMajorAu, planetMassEarth, star.MassSolar);
-        var outerStable = Math.Max(hillAu * 0.45f, planetRadiusEarth * 0.0000426f * 40f);
-        var inner = Math.Max(planetRadiusEarth * 0.0000426f * 3f, outerStable * 0.05f);
+        var outerStable = Math.Max(
+            hillAu * AstroConstants.StableMoonHillFraction,
+            planetRadiusEarth * AstroConstants.EarthRadiusAu * 40f);
+        var inner = Math.Max(
+            planetRadiusEarth * AstroConstants.EarthRadiusAu * AstroConstants.MinMoonOrbitPlanetRadii,
+            outerStable * 0.05f);
 
         var minVisual = planetVisualRadiusAu * 1.55f;
         var maxVisual = planetVisualRadiusAu * (2.8f + 0.55f * count);
@@ -118,7 +124,7 @@ public static class MoonGenerator
             var aPhys = inner + (outerStable - inner) * t * (0.9f + 0.2f * R());
             aPhys = Math.Clamp(aPhys, inner, outerStable);
 
-            var mSolar = Math.Max(planetMassEarth * 3.003e-6f, 1e-9f);
+            var mSolar = Math.Max(planetMassEarth * AstroConstants.EarthMassSolar, 1e-9f);
             var period = MathF.Sqrt(MathF.Pow(Math.Max(aPhys, 1e-9f), 3f) / mSolar);
             period = Math.Clamp(period, SystemViewScale.MinMoonOrbitPeriodYears, 0.12f);
 
@@ -189,7 +195,7 @@ public static class MoonGenerator
 
     private static float HillRadiusAu(float aAu, float massEarth, float starMassSolar)
     {
-        var mSolar = massEarth * 3.003e-6f;
+        var mSolar = massEarth * AstroConstants.EarthMassSolar;
         var mu = mSolar / Math.Max(starMassSolar, 0.05f);
         return aAu * MathF.Pow(mu / 3f, 1f / 3f);
     }

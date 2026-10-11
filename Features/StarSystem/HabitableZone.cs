@@ -1,3 +1,5 @@
+using DensityWaveTheory.Shared;
+
 namespace DensityWaveTheory.Features.StarSystem;
 
 /// <summary>
@@ -10,7 +12,7 @@ public readonly record struct HabitableZone(float InnerAu, float OuterAu)
 
     public static HabitableZone FromStar(StellarModel star)
     {
-        var tStar = star.TempKelvin - 5780f;
+        var tStar = star.TempKelvin - AstroConstants.KopparapuReferenceTempKelvin;
         var innerSeff = Seff(tStar, 1.107f, 1.332e-4f, 1.58e-8f, -8.308e-12f, -1.931e-15f);
         var outerSeff = Seff(tStar, 0.356f, 6.171e-5f, 1.698e-9f, -3.198e-12f, -5.575e-16f);
 
