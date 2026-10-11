@@ -10,6 +10,62 @@ namespace DensityWaveTheory.Features.StarSystem;
 /// </summary>
 public static class MoonGenerator
 {
+    private const float HillInnerFloorFraction = 0.05f;
+    private const float MinHillSpanFactor = 1.2f;
+    private const float MinPlanetMassSolar = 1e-9f;
+    private const float MinStarMassSolar = 0.05f;
+    private const int MaxMoons = 12;
+
+    private const float SystemMinVisualOrbitFactor = 1.7f;
+    private const float SystemMaxVisualOrbitFactor = 4.5f;
+    private const float SystemMinVisualSpanFactor = 1.05f;
+    private const float SystemClearanceSlotFactor = 0.55f;
+    private const float SystemMinClearanceSlotAu = 0.02f;
+    private const float SystemMinPeriodYears = 0.0008f;
+    private const float SystemMaxPeriodYears = 0.08f;
+    private const float SystemVisualPackBase = 0.12f;
+    private const float SystemVisualPackSpan = 0.82f;
+
+    private const float FocusFallbackPlanetRadii = 40f;
+    private const float FocusMinVisualOrbitFactor = 1.55f;
+    private const float FocusMaxVisualBaseFactor = 2.8f;
+    private const float FocusMaxVisualPerMoon = 0.55f;
+    private const float FocusMaxPeriodYears = 0.12f;
+    private const float FocusVisualPackBase = 0.08f;
+    private const float FocusVisualPackSpan = 0.88f;
+
+    private const float PhysOrbitJitterBase = 0.9f;
+    private const float PhysOrbitJitterSpan = 0.2f;
+    private const float SingleMoonOrbitT = 0.55f;
+    private const float MultiMoonOrbitTOffset = 0.65f;
+    private const float MultiMoonOrbitTDenomPad = 0.3f;
+
+    private const float HaveHotRocky = 0.06f;
+    private const float HaveRocky = 0.32f;
+    private const float HaveTemperate = 0.48f;
+    private const float HaveIce = 0.82f;
+    private const float HaveGasGiant = 0.96f;
+    private const float HaveFallback = 0.2f;
+
+    private const float CloseInAu0 = 0.08f;
+    private const float CloseInAu1 = 0.20f;
+    private const float CloseInAu2 = 0.45f;
+    private const float CloseInAu3 = 0.80f;
+    private const float CloseInSurvive0 = 0.05f;
+    private const float CloseInSurvive1 = 0.25f;
+    private const float CloseInSurvive2 = 0.55f;
+    private const float CloseInSurvive3 = 0.85f;
+
+    private const float RockySecondMoonChance = 0.35f;
+    private const float TemperateSecondMoonChance = 0.40f;
+    private const int IceMoonBase = 2;
+    private const int IceMoonExtra = 5;
+    private const int GasGiantMoonBase = 4;
+    private const int GasGiantMoonExtra = 9;
+
+    private const float RockyMassRadiusFloor = 0.3f;
+    private const float RockyMassRadiusExponent = 3.3f;
+
     public static IReadOnlyList<Moon> Generate(
         Random rng,
         StellarModel star,
@@ -36,37 +92,41 @@ public static class MoonGenerator
         var outerStable = hillAu * AstroConstants.StableMoonHillFraction;
         var inner = Math.Max(
             planetRadiusEarth * AstroConstants.EarthRadiusAu * AstroConstants.MinMoonOrbitPlanetRadii,
-            outerStable * 0.05f);
-        if (outerStable <= inner * 1.2f)
+            outerStable * HillInnerFloorFraction);
+        if (outerStable <= inner * MinHillSpanFactor)
             return []; // Hill sphere too small (very close-in)
 
         // Keep drawn moon rings inside the clear gap to neighboring planet orbits.
-        var minVisual = planetVisualRadiusAu * 1.7f;
-        var maxVisual = Math.Min(maxVisualOrbitAu, planetVisualRadiusAu * 4.5f);
-        if (maxVisual < minVisual * 1.05f)
+        var minVisual = planetVisualRadiusAu * SystemMinVisualOrbitFactor;
+        var maxVisual = Math.Min(maxVisualOrbitAu, planetVisualRadiusAu * SystemMaxVisualOrbitFactor);
+        if (maxVisual < minVisual * SystemMinVisualSpanFactor)
             return []; // no room to draw moons without crossing neighbors
 
         // Pack fewer moons when the clearance is tight so rings stay separated.
         var packSpan = maxVisual - minVisual;
-        var maxByClearance = 1 + (int)(packSpan / Math.Max(planetVisualRadiusAu * 0.55f, 0.02f));
-        count = Math.Min(count, Math.Clamp(maxByClearance, 1, 12));
+        var maxByClearance = 1 + (int)(packSpan / Math.Max(
+            planetVisualRadiusAu * SystemClearanceSlotFactor,
+            SystemMinClearanceSlotAu));
+        count = Math.Min(count, Math.Clamp(maxByClearance, 1, MaxMoons));
 
         var moons = new List<Moon>(count);
         for (var i = 0; i < count; i++)
         {
-            var t = count == 1 ? 0.55f : (i + 0.65f) / (count + 0.3f);
-            var aPhys = inner + (outerStable - inner) * t * (0.9f + 0.2f * R());
+            var t = count == 1
+                ? SingleMoonOrbitT
+                : (i + MultiMoonOrbitTOffset) / (count + MultiMoonOrbitTDenomPad);
+            var aPhys = inner + (outerStable - inner) * t * (PhysOrbitJitterBase + PhysOrbitJitterSpan * R());
             aPhys = Math.Clamp(aPhys, inner, outerStable);
 
             // Kepler period around the planet (years): P ≈ √(a_AU³ / (M_p / M☉)).
-            var mSolar = Math.Max(planetMassEarth * AstroConstants.EarthMassSolar, 1e-9f);
+            var mSolar = Math.Max(planetMassEarth * AstroConstants.EarthMassSolar, MinPlanetMassSolar);
             var period = MathF.Sqrt(MathF.Pow(aPhys, 3f) / mSolar);
             // Moons orbit fast; clamp so animation stays readable at system time scale.
-            period = Math.Clamp(period, 0.0008f, 0.08f);
+            period = Math.Clamp(period, SystemMinPeriodYears, SystemMaxPeriodYears);
 
             // Evenly pack visual orbits between min/max so outer moons never reach neighbors.
-            var u = count == 1 ? 0.55f : i / (float)(count - 1);
-            var visual = minVisual + packSpan * (0.12f + 0.82f * u);
+            var u = count == 1 ? SingleMoonOrbitT : i / (float)(count - 1);
+            var visual = minVisual + packSpan * (SystemVisualPackBase + SystemVisualPackSpan * u);
 
             var radius = RadiusEarthFor(type, planetRadiusEarth, R());
             moons.Add(new Moon
@@ -102,34 +162,36 @@ public static class MoonGenerator
             return [];
 
         float R() => (float)rng.NextDouble();
-        var count = Math.Clamp(forceCount, 1, 12);
+        var count = Math.Clamp(forceCount, 1, MaxMoons);
 
         var planetMassEarth = MassEarth(type, planetRadiusEarth);
         var hillAu = HillRadiusAu(planetSemiMajorAu, planetMassEarth, star.MassSolar);
         var outerStable = Math.Max(
             hillAu * AstroConstants.StableMoonHillFraction,
-            planetRadiusEarth * AstroConstants.EarthRadiusAu * 40f);
+            planetRadiusEarth * AstroConstants.EarthRadiusAu * FocusFallbackPlanetRadii);
         var inner = Math.Max(
             planetRadiusEarth * AstroConstants.EarthRadiusAu * AstroConstants.MinMoonOrbitPlanetRadii,
-            outerStable * 0.05f);
+            outerStable * HillInnerFloorFraction);
 
-        var minVisual = planetVisualRadiusAu * 1.55f;
-        var maxVisual = planetVisualRadiusAu * (2.8f + 0.55f * count);
+        var minVisual = planetVisualRadiusAu * FocusMinVisualOrbitFactor;
+        var maxVisual = planetVisualRadiusAu * (FocusMaxVisualBaseFactor + FocusMaxVisualPerMoon * count);
         var packSpan = maxVisual - minVisual;
 
         var moons = new List<Moon>(count);
         for (var i = 0; i < count; i++)
         {
-            var t = count == 1 ? 0.55f : (i + 0.65f) / (count + 0.3f);
-            var aPhys = inner + (outerStable - inner) * t * (0.9f + 0.2f * R());
+            var t = count == 1
+                ? SingleMoonOrbitT
+                : (i + MultiMoonOrbitTOffset) / (count + MultiMoonOrbitTDenomPad);
+            var aPhys = inner + (outerStable - inner) * t * (PhysOrbitJitterBase + PhysOrbitJitterSpan * R());
             aPhys = Math.Clamp(aPhys, inner, outerStable);
 
-            var mSolar = Math.Max(planetMassEarth * AstroConstants.EarthMassSolar, 1e-9f);
+            var mSolar = Math.Max(planetMassEarth * AstroConstants.EarthMassSolar, MinPlanetMassSolar);
             var period = MathF.Sqrt(MathF.Pow(Math.Max(aPhys, 1e-9f), 3f) / mSolar);
-            period = Math.Clamp(period, SystemViewScale.MinMoonOrbitPeriodYears, 0.12f);
+            period = Math.Clamp(period, SystemViewScale.MinMoonOrbitPeriodYears, FocusMaxPeriodYears);
 
             var u = count == 1 ? 0.5f : i / (float)(count - 1);
-            var visual = minVisual + packSpan * (0.08f + 0.88f * u);
+            var visual = minVisual + packSpan * (FocusVisualPackBase + FocusVisualPackSpan * u);
 
             moons.Add(new Moon
             {
@@ -152,21 +214,21 @@ public static class MoonGenerator
     /// </summary>
     private static float BaseHaveProbability(PlanetType type) => type switch
     {
-        PlanetType.HotRocky => 0.06f,   // Mercury/Venus-like; tidal loss / tiny Hill sphere
-        PlanetType.Rocky => 0.32f,      // Mars-like often has tiny moons; Earth-like ~coin flip
-        PlanetType.Temperate => 0.48f,  // HZ rocky: Earth has 1; many may have 0-2
-        PlanetType.Ice => 0.82f,        // Uranus/Neptune-class: regular mid-size systems common
-        PlanetType.GasGiant => 0.96f,   // Jupiter/Saturn-class: regular satellite systems ubiquitous
-        _ => 0.2f,
+        PlanetType.HotRocky => HaveHotRocky,   // Mercury/Venus-like; tidal loss / tiny Hill sphere
+        PlanetType.Rocky => HaveRocky,         // Mars-like often has tiny moons; Earth-like ~coin flip
+        PlanetType.Temperate => HaveTemperate, // HZ rocky: Earth has 1; many may have 0-2
+        PlanetType.Ice => HaveIce,             // Uranus/Neptune-class: regular mid-size systems common
+        PlanetType.GasGiant => HaveGasGiant,   // Jupiter/Saturn-class: regular satellite systems ubiquitous
+        _ => HaveFallback,
     };
 
     /// <summary>Close-in planets lose moons to tides / Hill shrinkage (Sasaki, Zollinger et al.).</summary>
     private static float CloseInSurvival(float aAu)
     {
-        if (aAu < 0.08f) return 0.05f;
-        if (aAu < 0.20f) return 0.25f;
-        if (aAu < 0.45f) return 0.55f;
-        if (aAu < 0.80f) return 0.85f;
+        if (aAu < CloseInAu0) return CloseInSurvive0;
+        if (aAu < CloseInAu1) return CloseInSurvive1;
+        if (aAu < CloseInAu2) return CloseInSurvive2;
+        if (aAu < CloseInAu3) return CloseInSurvive3;
         return 1f;
     }
 
@@ -176,10 +238,10 @@ public static class MoonGenerator
         return type switch
         {
             PlanetType.HotRocky => 1,
-            PlanetType.Rocky => 1 + (rng.NextDouble() < 0.35 ? 1 : 0),           // 1-2
-            PlanetType.Temperate => 1 + (rng.NextDouble() < 0.40 ? 1 : 0),       // 1-2
-            PlanetType.Ice => 2 + rng.Next(0, 5),                                // 2-6 (Uranus ~5 major)
-            PlanetType.GasGiant => 4 + rng.Next(0, 9),                           // 4-12 (Galilean+)
+            PlanetType.Rocky => 1 + (rng.NextDouble() < RockySecondMoonChance ? 1 : 0),
+            PlanetType.Temperate => 1 + (rng.NextDouble() < TemperateSecondMoonChance ? 1 : 0),
+            PlanetType.Ice => IceMoonBase + rng.Next(0, IceMoonExtra),
+            PlanetType.GasGiant => GasGiantMoonBase + rng.Next(0, GasGiantMoonExtra),
             _ => 1,
         };
     }
@@ -187,7 +249,7 @@ public static class MoonGenerator
     private static float MassEarth(PlanetType type, float radiusEarth) => type switch
     {
         PlanetType.HotRocky or PlanetType.Rocky or PlanetType.Temperate =>
-            MathF.Pow(Math.Max(radiusEarth, 0.3f), 3.3f),
+            MathF.Pow(Math.Max(radiusEarth, RockyMassRadiusFloor), RockyMassRadiusExponent),
         PlanetType.Ice => Math.Clamp(8f + radiusEarth * 6f, 10f, 25f),
         PlanetType.GasGiant => Math.Clamp(50f + radiusEarth * 40f, 80f, 400f),
         _ => 1f,
@@ -196,7 +258,7 @@ public static class MoonGenerator
     private static float HillRadiusAu(float aAu, float massEarth, float starMassSolar)
     {
         var mSolar = massEarth * AstroConstants.EarthMassSolar;
-        var mu = mSolar / Math.Max(starMassSolar, 0.05f);
+        var mu = mSolar / Math.Max(starMassSolar, MinStarMassSolar);
         return aAu * MathF.Pow(mu / 3f, 1f / 3f);
     }
 

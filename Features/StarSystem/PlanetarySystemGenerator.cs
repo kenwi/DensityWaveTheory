@@ -15,12 +15,36 @@ public sealed class PlanetarySystem
 
 public static class PlanetarySystemGenerator
 {
+    private const float SeedSemiMajorQuantize = 10f;
+    private const float SeedThetaQuantize = 100f;
+
+    private const float MStarSpacingBase = 1.35f;
+    private const float MStarSpacingSpan = 0.15f;
+    private const float OtherStarSpacingBase = 1.55f;
+    private const float OtherStarSpacingSpan = 0.25f;
+    private const float HzAnchorCountExponent = 0.45f;
+    private const float A0MinInnerHzFraction = 0.08f;
+    private const float A0MaxInnerHzFraction = 0.55f;
+    private const float OrbitJitterBase = 0.94f;
+    private const float OrbitJitterSpan = 0.12f;
+    private const float MinSemiMajorAu = 0.02f;
+    private const float MinEccentricity = 0.01f;
+    private const float EccentricitySpan = 0.07f;
+    private const float MinStarMassSolar = 0.05f;
+    private const float MinPlanetPeriodYears = 0.01f;
+    private const float MoonRingClearanceFraction = 0.38f;
+    private const float OuterNeighborGapFraction = 0.35f;
+    private const float HotRockyInnerHzFraction = 0.55f;
+    private const float IceOuterHzHotStar = 2.2f;
+    private const float IceOuterHzCoolStar = 1.7f;
+    private const int SystemSurfaceDetail = 48;
+
     public static int MakeSeed(uint galaxySeed, int starIndex, float a, float theta0, float temp)
     {
         var h = (int)galaxySeed;
         h = ProceduralSeed.Mix(h, starIndex);
-        h = ProceduralSeed.Mix(h, (int)(a * 10f));
-        h = ProceduralSeed.Mix(h, (int)(theta0 * 100f));
+        h = ProceduralSeed.Mix(h, (int)(a * SeedSemiMajorQuantize));
+        h = ProceduralSeed.Mix(h, (int)(theta0 * SeedThetaQuantize));
         h = ProceduralSeed.Mix(h, (int)temp);
         return ProceduralSeed.NonZero(h);
     }
@@ -90,19 +114,21 @@ public static class PlanetarySystemGenerator
         var count = PlanetCount(star.SpectralClass, rng);
 
         // Geometric spacing scaled so one slot lands near HZ mid when possible.
-        var k = star.SpectralClass == "M" ? 1.35f + 0.15f * R() : 1.55f + 0.25f * R();
-        var a0 = hz.MidAu / MathF.Pow(k, count * 0.45f);
-        a0 = Math.Clamp(a0, hz.InnerAu * 0.08f, hz.InnerAu * 0.55f);
+        var k = star.SpectralClass == "M"
+            ? MStarSpacingBase + MStarSpacingSpan * R()
+            : OtherStarSpacingBase + OtherStarSpacingSpan * R();
+        var a0 = hz.MidAu / MathF.Pow(k, count * HzAnchorCountExponent);
+        a0 = Math.Clamp(a0, hz.InnerAu * A0MinInnerHzFraction, hz.InnerAu * A0MaxInnerHzFraction);
 
         // Pass 1: place planets (moons need neighbor gaps from the finished layout).
         var drafts = new List<(string Name, PlanetType Type, float A, float Ecc, float Period,
             float Radius, float Phase, Color Color, bool InHz)>(count);
         for (var i = 0; i < count; i++)
         {
-            var a = a0 * MathF.Pow(k, i) * (0.94f + 0.12f * R());
-            a = Math.Max(a, 0.02f);
-            var ecc = 0.01f + 0.07f * R();
-            var period = MathF.Sqrt(MathF.Pow(a, 3f) / Math.Max(star.MassSolar, 0.05f));
+            var a = a0 * MathF.Pow(k, i) * (OrbitJitterBase + OrbitJitterSpan * R());
+            a = Math.Max(a, MinSemiMajorAu);
+            var ecc = MinEccentricity + EccentricitySpan * R();
+            var period = MathF.Sqrt(MathF.Pow(a, 3f) / Math.Max(star.MassSolar, MinStarMassSolar));
             var inHz = a >= hz.InnerAu && a <= hz.OuterAu;
             var type = Classify(a, hz, star);
             var radius = RadiusFor(type, R());
@@ -112,7 +138,7 @@ public static class PlanetarySystemGenerator
                 type,
                 a,
                 ecc,
-                Math.Max(period, 0.01f),
+                Math.Max(period, MinPlanetPeriodYears),
                 radius,
                 R() * MathF.Tau,
                 color,
@@ -133,10 +159,10 @@ public static class PlanetarySystemGenerator
                 : peri * 0.5f;
             var gapOut = i + 1 < drafts.Count
                 ? drafts[i + 1].A * (1f - drafts[i + 1].Ecc) - apo
-                : apo * 0.35f;
+                : apo * OuterNeighborGapFraction;
             var clearance = Math.Max(0f, Math.Min(gapIn, gapOut));
             // Leave margin so moon rings never touch another planet's orbital ellipse.
-            var maxMoonVisual = clearance * 0.38f;
+            var maxMoonVisual = clearance * MoonRingClearanceFraction;
 
             var visualRadius = SystemViewScale.VisualPlanetRadiusAu(d.Radius);
             var moons = MoonGenerator.Generate(
@@ -165,7 +191,7 @@ public static class PlanetarySystemGenerator
             SourceStarIndex = starIndex,
             Seed = seed,
         };
-        SurfaceGenerator.AssignSystemSurfaces(system, detail: 48);
+        SurfaceGenerator.AssignSystemSurfaces(system, detail: SystemSurfaceDetail);
         return system;
     }
 
@@ -180,13 +206,16 @@ public static class PlanetarySystemGenerator
 
     private static PlanetType Classify(float a, HabitableZone hz, StellarModel star)
     {
-        if (a < hz.InnerAu * 0.55f)
+        if (a < hz.InnerAu * HotRockyInnerHzFraction)
             return PlanetType.HotRocky;
         if (a < hz.InnerAu)
             return PlanetType.Rocky;
         if (a <= hz.OuterAu)
             return PlanetType.Temperate;
-        if (a < hz.OuterAu * (star.SpectralClass is "F" or "A" ? 2.2f : 1.7f))
+        var iceOuter = hz.OuterAu * (star.SpectralClass is "F" or "A"
+            ? IceOuterHzHotStar
+            : IceOuterHzCoolStar);
+        if (a < iceOuter)
             return PlanetType.Ice;
         return PlanetType.GasGiant;
     }
