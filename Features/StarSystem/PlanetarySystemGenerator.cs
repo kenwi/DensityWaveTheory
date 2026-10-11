@@ -1,4 +1,5 @@
 using DensityWaveTheory.Features.GalaxyPopulation;
+using DensityWaveTheory.Shared;
 using Raylib_cs;
 
 namespace DensityWaveTheory.Features.StarSystem;
@@ -16,15 +17,12 @@ public static class PlanetarySystemGenerator
 {
     public static int MakeSeed(uint galaxySeed, int starIndex, float a, float theta0, float temp)
     {
-        unchecked
-        {
-            var h = (int)galaxySeed;
-            h = h * 397 ^ starIndex;
-            h = h * 397 ^ (int)(a * 10f);
-            h = h * 397 ^ (int)(theta0 * 100f);
-            h = h * 397 ^ (int)temp;
-            return h == 0 ? 1 : h;
-        }
+        var h = (int)galaxySeed;
+        h = ProceduralSeed.Mix(h, starIndex);
+        h = ProceduralSeed.Mix(h, (int)(a * 10f));
+        h = ProceduralSeed.Mix(h, (int)(theta0 * 100f));
+        h = ProceduralSeed.Mix(h, (int)temp);
+        return ProceduralSeed.NonZero(h);
     }
 
     /// <summary>Planet count for a seed - same RNG draw as <see cref="Generate"/>.</summary>

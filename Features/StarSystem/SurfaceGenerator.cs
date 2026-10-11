@@ -1,3 +1,4 @@
+using DensityWaveTheory.Shared;
 using Raylib_cs;
 
 namespace DensityWaveTheory.Features.StarSystem;
@@ -113,14 +114,18 @@ public static class SurfaceGenerator
         var i = 0;
         foreach (var planet in system.Planets)
         {
-            var pSeed = unchecked(system.Seed * 397 ^ i * 7919 ^ StableHash(planet.Name));
+            var pSeed = ProceduralSeed.Xor(
+                ProceduralSeed.Mix(system.Seed, i * ProceduralSeed.IndexPrime),
+                ProceduralSeed.StableHash(planet.Name));
             planet.Surface?.Dispose();
             planet.Surface = CreatePlanet(pSeed, planet.Type, planet.Color, planet.InHabitableZone, detail);
 
             var mi = 0;
             foreach (var moon in planet.Moons)
             {
-                var mSeed = unchecked(pSeed * 31 ^ mi * 577 ^ StableHash(moon.Name));
+                var mSeed = ProceduralSeed.Xor(
+                    ProceduralSeed.MixChild(pSeed, mi * ProceduralSeed.SiblingPrime),
+                    ProceduralSeed.StableHash(moon.Name));
                 moon.Surface?.Dispose();
                 moon.Surface = CreateMoon(mSeed, moon.Color, Math.Max(16, detail / 2));
                 mi++;
@@ -222,14 +227,4 @@ public static class SurfaceGenerator
             255);
     }
 
-    private static int StableHash(string s)
-    {
-        unchecked
-        {
-            var h = 23;
-            foreach (var c in s)
-                h = h * 31 + c;
-            return h;
-        }
-    }
 }

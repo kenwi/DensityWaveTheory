@@ -1,3 +1,5 @@
+using DensityWaveTheory.Shared;
+
 namespace DensityWaveTheory.Features.StarSystem;
 
 public static class PlanetFocusGenerator
@@ -17,7 +19,9 @@ public static class PlanetFocusGenerator
         var source = system.Planets[planetIndex];
         // Same visual radius formula as PlanetScene so moon rings match the disc.
         var visualRadius = PlanetScene.VisualPlanetRadius(source.RadiusEarth);
-        var moonSeed = unchecked(system.Seed * 397 ^ (planetIndex + 17) ^ 0x504C4E54);
+        var moonSeed = ProceduralSeed.Xor(
+            ProceduralSeed.Mix(system.Seed, planetIndex + 17),
+            ProceduralSeed.PlanetTag);
         var rng = new Random(moonSeed);
         var moons = MoonGenerator.GenerateFocus(
             rng,
@@ -43,14 +47,18 @@ public static class PlanetFocusGenerator
             Moons = moons,
         };
 
-        var focusSeed = unchecked(system.Seed * 397 ^ (planetIndex + 1) ^ 0x53555246);
+        var focusSeed = ProceduralSeed.Xor(
+            ProceduralSeed.Mix(system.Seed, planetIndex + 1),
+            ProceduralSeed.SurfaceTag);
         planet.Surface = SurfaceGenerator.CreatePlanet(
             focusSeed, planet.Type, planet.Color, planet.InHabitableZone, 192);
         for (var mi = 0; mi < planet.Moons.Count; mi++)
         {
             var moon = planet.Moons[mi];
             moon.Surface = SurfaceGenerator.CreateMoon(
-                unchecked(focusSeed * 31 ^ mi * 577), moon.Color, 80);
+                ProceduralSeed.MixChild(focusSeed, mi * ProceduralSeed.SiblingPrime),
+                moon.Color,
+                80);
         }
 
         return new PlanetFocus

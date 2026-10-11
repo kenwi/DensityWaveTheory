@@ -1,3 +1,5 @@
+using DensityWaveTheory.Shared;
+
 namespace DensityWaveTheory.Features.StarSystem;
 
 public static class MoonFocusGenerator
@@ -24,11 +26,13 @@ public static class MoonFocusGenerator
             Color = source.Color,
         };
 
-        var seed = unchecked(
-            planetFocus.SystemSeed * 397 ^
-            (planetFocus.PlanetIndex + 3) * 7919 ^
-            (moonIndex + 1) * 577 ^
-            0x4D4F4F4E);
+        var seed = ProceduralSeed.Xor(
+            ProceduralSeed.Xor(
+                ProceduralSeed.Mix(
+                    planetFocus.SystemSeed,
+                    (planetFocus.PlanetIndex + 3) * ProceduralSeed.IndexPrime),
+                (moonIndex + 1) * ProceduralSeed.SiblingPrime),
+            ProceduralSeed.MoonTag);
         moon.Surface = SurfaceGenerator.CreateMoon(seed, moon.Color, 224);
 
         return new MoonFocus
